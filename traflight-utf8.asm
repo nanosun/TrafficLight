@@ -5,13 +5,13 @@
 ;;完成键盘基本功能
 ;;------------------------
 ;;R0	 R1			  R2			  R3 			R6		  R7	  R5			 R4
-;;灯状态 临时使用 2红灯倒计时	  1绿灯倒计时    秒状态数码	 分状态	  空	 屏状态（0开1选段2调时间3调高位时间）
+;;灯状态 临时使用 2红灯倒计时	  1绿灯倒计时    秒状态数码	 分状态	  空	 屏状态（0开1选段2调时间3调绿灯时间）
 ;;------------------------
-;;30H  31H  32H-35H	   36H            37H			38H		 39H	  			 3AH         3BH     3CH			位7F	   3DH
-;;绿灯 红灯	灯状态地址 减一用  当前小时状态码  LED显示寄存器 数码管地址高八位	 屏段(HEX码) 屏绿灯 屏红灯（BCD码）	选位标志   BCDINC和BCDDEC子程序的操作位
+;;30H  31H  32H-35H	   36H            37H			38H		 39H	  			 3AH         3BH     3CH			位7F	   3DH								3EH
+;;绿灯 红灯	灯状态地址 减一用  当前小时状态码  LED显示寄存器 数码管地址高八位	 屏段(HEX码) 屏绿灯 屏红灯（BCD码）	选位标志   BCDINC和BCDDEC子程序的操作位	   闪烁关灯程序数据传递位
 ;;------------------------
-;;50H-7FH			  40H 41H
-;;用户定义灯状态	  delay10中用到的变量
+;;50H-7FH			  40H 41H				  位7E
+;;用户定义灯状态	  delay10中用到的变量  区分一秒中的上下半秒
 ;;------------------------
 ;;键盘
 ;; 1        2       3          4  5
@@ -54,8 +54,8 @@ MAIN:
 		MOV TMOD,#61H	;初始化计时器 定时器0方式1 计数器1方式2
 		MOV TH0,#1FH	;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
 		MOV TL0,#00H
-		MOV TH1,#0F8H
-		MOV TL1,#0F8H	;8. 1S ;	
+		MOV TH1,#0FCH
+		MOV TL1,#0FCH	;4. 0.5S ;	
 		MOV R6,#SECS_PER_MIN ;每分中的秒数，调试用
 		MOV R7,#MINS_PER_HOUR ;每小时中的分数，调试用
 		MOV 37H,#23	;初始化当前时间（小时状态）
@@ -92,7 +92,41 @@ INT_TO:								;计时器0中断处理程序
 		
 INT_C1:								;计数器1中断处理程序
 		PUSH ACC
-		MOV 36H,R3
+		CPL 7EH
+		JB 7EH,INT_C1_NORMAL
+INT_C1_BLINK:
+		MOV A,R4
+		JZ INT_C1_BLINK_EXIT		
+		MOV A,R4
+		CLR C
+		SUBB A,#2
+		JBC CY,INT_C1_BLINK_EXIT
+		JNZ INT_C1_BLINK_RED
+		MOV 3EH,3BH
+		LCALL CLOSEDIG
+		LJMP INT_C1_EXIT1
+INT_C1_BLINK_RED:
+		MOV 3EH,3CH
+		LCALL CLOSEDIG		
+INT_C1_BLINK_EXIT:
+		LJMP INT_C1_EXIT1				
+INT_C1_NORMAL:
+		MOV A,R4
+		JZ INT_C1_NORMAL1		
+		MOV A,R4
+		CLR C
+		SUBB A,#2
+		JBC CY,INT_C1_NORMAL1
+		JNZ INT_C1_UNBLINK_RED
+		MOV 38H,3BH
+		MOV 39H,#LDD6
+		LCALL DISPLAY_NUMBER
+		LJMP INT_C1_NORMAL1
+INT_C1_UNBLINK_RED:
+		MOV 38H,3CH
+		MOV 39H,#LDD6
+		LCALL DISPLAY_NUMBER				
+INT_C1_NORMAL1:		MOV 36H,R3
 		LCALL SUBBCD
 		MOV R3,36H
 		MOV 36H,R2
@@ -348,6 +382,21 @@ BCDDEC_HIGH1:
 		MOV 3DH,A
 BCDDEC_EXIT:
 		POP ACC	
+		RET
+
+CLOSEDIG:
+		PUSH ACC
+		MOV A,3EH
+		JB 7FH,CLOSEDIG_HIGH
+		ORL A,#0FH
+		LJMP CLOSEDIG_EXIT
+CLOSEDIG_HIGH:
+		ORL A,#0F0H
+CLOSEDIG_EXIT:		
+		MOV 38H,A
+		MOV 39H,#LDD6
+		LCALL DISPLAY_NUMBER
+		POP ACC
 		RET
 ;-------------END OF 按键中断处理程序----------------
 
