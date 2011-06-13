@@ -1,0 +1,624 @@
+,,,;;------------------------
+,,,;;TrafLight v1.5
+,,,;;by SN icetiny@gmail.com
+,,,;;2011-6-10
+,,,;;完成键盘基本功能
+,,,;;------------------------
+,,,;;R0     R1                       R2                      R3                    R6                R7
+,,,;;灯状态 临时使用 2红灯倒计时     1绿灯倒计时    秒状态数码      分状态   空     屏状态（0开1选段2调
+,,,;;------------------------
+,,,;;30H  31H  32H-35H        36H            37H                   38H              39H
+,,,;;绿灯 红灯     灯状态地址 减一用  当前小时状态码  LED显示寄存器 数码管地址高八位        屏段(HEX码)
+,,,;;------------------------
+,,,;;50H-7FH                         40H 41H                                 位7E
+,,,;;用户定义灯状态          delay10中用到的变量  区分一秒中的上下半秒
+,,,;;------------------------
+,,,;;键盘
+,,,;; 1        2       3          4  5
+,,,;;on/off   ok/next      <>选位     +  -
+,,,;;------------------------
+,,,
+,,,                ORG 0000H
+0000,01 30,,                AJMP MAIN
+,,,;----------------INTERRUPT VECTORS--------------------------
+,,,                ORG 0003H ;外部中断0
+0003,02 01 47,,                LJMP INT_EX0
+,,,                ORG 000BH
+000B,02 00 91,,                LJMP INT_TO
+,,,                ORG 0013H ;外部中断1
+0013,02 01 85,,                LJMP INT_EX1
+,,,                ORG 001BH
+001B,02 00 9A,,                LJMP INT_C1
+,,,;------------DEFINE CONSTANT VALUE--------------------------
+,,,                LDD1 EQU 0f8H ;数码管地址
+,,,                LDD2 EQU 0f9H
+,,,                LDD3 EQU 0faH
+,,,                LDD4 EQU 0fbH
+,,,                LDD5 EQU 0fcH
+,,,                LDD6 EQU 0fdH
+,,,                LED  EQU 0feH ;灯地址
+,,,                G_R1 EQU 1100B
+,,,                Y_R2 EQU 1010B
+,,,                R_G3 EQU 100001B
+,,,                R_Y4 EQU 10001B
+,,,                SECS_PER_MIN EQU 5  ;每分中的秒数，调试用
+,,,                MINS_PER_HOUR EQU 6 ;每小时中的分数，调试用
+,,,;-----------------------------------------------------------
+,,,;;--------------MAIN PROGRAM BEGIN---------------------------
+,,,                ORG 0030H
+0030,,MAIN,MAIN:
+0030,75 81 10,,                MOV SP,#10H
+0033,75 90 0F,,                MOV P1,#0FH
+0036,75 32 0C,,                MOV 32H,#G_R1
+0039,75 33 0A,,                MOV 33H,#Y_R2
+003C,75 34 21,,                MOV 34H,#R_G3
+003F,75 35 11,,                MOV 35H,#R_Y4
+0042,75 89 61,,                MOV TMOD,#61H   ;初始化计时器 定时器0方式1 计数器1方式2
+0045,75 8C 1F,,                MOV TH0,#1FH    ;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
+0048,75 8A 00,,                MOV TL0,#00H
+004B,75 8D FC,,                MOV TH1,#0FCH
+004E,75 8B FC,,                MOV TL1,#0FCH   ;4. 0.5S ;
+0051,7E 05,,                MOV R6,#SECS_PER_MIN ;每分中的秒数，调试用
+0053,7F 06,,                MOV R7,#MINS_PER_HOUR ;每小时中的分数，调试用
+0055,75 37 17,,                MOV 37H,#23     ;初始化当前时间（小时状态）
+0058,75 7E 03,,                MOV 7EH,#03H    ;测试RAM中红绿灯时间表用
+005B,75 7F 00,,                MOV 7FH,#00H
+005E,12 03 73,,                LCALL GET_LIGHT_TIME ;获取倒计时时间
+0061,78 32,,                MOV R0,#32H     ;R0记录信号灯寄存器状态
+0063,AB 30,,                MOV R3,30H
+0065,AA 31,,                MOV R2,31H
+0067,12 03 D2,,                LCALL CHANGE_LIGHT      ;开信号灯
+006A,8B 38,,                MOV 38H,R3         ;送显示，开数码管
+006C,75 39 F9,,                MOV 39H,#LDD2
+006F,12 03 E0,,                LCALL DISPLAY_NUMBER
+0072,8A 38,,                MOV 38H,R2
+0074,75 39 FB,,                MOV 39H,#LDD4
+0077,12 03 E0,,                LCALL DISPLAY_NUMBER
+,,,                ;中断优先级处理，待完成
+007A,75 B8 0A,,                MOV IP,#00001010B        ;优先级依次为 t0 t1 x0 x1
+007D,D2 A9,,                SETB ET0
+007F,D2 AB,,                SETB ET1
+0081,D2 A8,,                SETB EX0
+0083,D2 AA,,                SETB EX1
+0085,D2 88,,                SETB IT0
+0087,D2 8A,,                SETB IT1
+0089,D2 AF,,                SETB EA
+008B,D2 8C,,                SETB TR0
+008D,D2 8E,,                SETB TR1
+,,,                ;初始化完毕，开始计时
+008F,80 FE,,                SJMP $
+,,,;;-------------- END OF MAIN -----------------
+0091,,INT_TO,INT_TO:                                                         ;计时器0中断处理程序
+0091,75 8C 1F,,                MOV TH0,#1FH
+0094,75 8A 00,,                MOV TL0,#00H
+0097,B2 B5,,                CPL P3.5
+0099,32,,                RETI
+,,,
+009A,,INT_C1,INT_C1:                                                         ;计数器1中断处理程序
+009A,C0 E0,,                PUSH ACC
+009C,B2 7E,,                CPL 7EH
+009E,20 7E 1E,,                JB 7EH,INT_C1_NORMAL
+00A1,,INT_C1_BLINK,INT_C1_BLINK:
+00A1,EC,,                MOV A,R4
+00A2,60 18,,                JZ INT_C1_BLINK_EXIT
+00A4,EC,,                MOV A,R4
+00A5,C3,,                CLR C
+00A6,94 02,,                SUBB A,#2
+00A8,10 D7 11,,                JBC CY,INT_C1_BLINK_EXIT
+00AB,70 09,,                JNZ INT_C1_BLINK_RED
+00AD,85 3B 3E,,                MOV 3EH,3BH
+00B0,12 03 4A,,                LCALL CLOSEDIG
+00B3,02 01 44,,                LJMP INT_C1_EXIT1
+00B6,,INT_C1_BLINK_RED,INT_C1_BLINK_RED:
+00B6,85 3C 3E,,                MOV 3EH,3CH
+00B9,12 03 4A,,                LCALL CLOSEDIG
+00BC,,INT_C1_BLINK_EXIT,INT_C1_BLINK_EXIT:
+00BC,02 01 44,,                LJMP INT_C1_EXIT1
+00BF,,INT_C1_NORMAL,INT_C1_NORMAL:
+00BF,EC,,                MOV A,R4
+00C0,60 1E,,                JZ INT_C1_NORMAL1
+00C2,EC,,                MOV A,R4
+00C3,C3,,                CLR C
+00C4,94 02,,                SUBB A,#2
+00C6,10 D7 17,,                JBC CY,INT_C1_NORMAL1
+00C9,70 0C,,                JNZ INT_C1_UNBLINK_RED
+00CB,85 3B 38,,                MOV 38H,3BH
+00CE,75 39 FD,,                MOV 39H,#LDD6
+00D1,12 03 E0,,                LCALL DISPLAY_NUMBER
+00D4,02 00 E0,,                LJMP INT_C1_NORMAL1
+00D7,,INT_C1_UNBLINK_RED,INT_C1_UNBLINK_RED:
+00D7,85 3C 38,,                MOV 38H,3CH
+00DA,75 39 FD,,                MOV 39H,#LDD6
+00DD,12 03 E0,,                LCALL DISPLAY_NUMBER
+00E0,8B 36,INT_C1_NORMAL1,INT_C1_NORMAL1:         MOV 36H,R3
+00E2,12 04 21,,                LCALL SUBBCD
+00E5,AB 36,,                MOV R3,36H
+00E7,8A 36,,                MOV 36H,R2
+00E9,12 04 21,,                LCALL SUBBCD
+00EC,AA 36,,                MOV R2,36H
+00EE,BA F9 25,,                CJNE R2,#0F9H,INT_C1_NEXT2
+00F1,08,,                INC R0
+00F2,B8 36 0B,,                CJNE R0,#36H,INT_C1_NEXT0
+00F5,78 32,,                MOV R0,#32H
+00F7,12 03 D2,,                LCALL CHANGE_LIGHT
+00FA,AB 30,,                MOV R3,30H
+00FC,AA 31,,                MOV R2,31H
+00FE,80 1F,,                SJMP INT_C1_EXIT
+0100,,INT_C1_NEXT0,INT_C1_NEXT0:
+0100,B8 34 09,,                CJNE R0,#34H,INT_C1_NEXT1
+0103,12 03 D2,,                LCALL CHANGE_LIGHT
+0106,AB 31,,                MOV R3,31H
+0108,AA 30,,                MOV R2,30H
+010A,80 13,,                SJMP INT_C1_EXIT
+010C,,INT_C1_NEXT1,INT_C1_NEXT1:
+010C,B8 35 07,,                CJNE R0,#35H,INT_C1_NEXT2
+010F,12 03 D2,,                LCALL CHANGE_LIGHT
+0112,EB,,                MOV A,R3
+0113,CA,,                XCH A,R2
+0114,80 09,,                SJMP INT_C1_EXIT
+0116,,INT_C1_NEXT2,INT_C1_NEXT2:
+0116,BB F9 06,,                CJNE R3,#0F9H,INT_C1_EXIT
+0119,08,,                INC R0
+011A,12 03 D2,,                LCALL CHANGE_LIGHT
+011D,EA,,                MOV A,R2
+011E,CB,,                XCH A,R3
+011F,,INT_C1_EXIT,INT_C1_EXIT:
+011F,8B 38,,                MOV 38H,R3         ;送显示
+0121,75 39 F9,,                MOV 39H,#LDD2
+0124,12 03 E0,,                LCALL DISPLAY_NUMBER
+0127,8A 38,,                MOV 38H,R2
+0129,75 39 FB,,                MOV 39H,#LDD4
+012C,12 03 E0,,                LCALL DISPLAY_NUMBER
+012F,DE 13,,                DJNZ R6,INT_C1_EXIT1
+0131,7E 05,,                MOV R6,#SECS_PER_MIN
+0133,DF 0F,,                DJNZ R7,INT_C1_EXIT1
+0135,7F 06,,                MOV R7,#MINS_PER_HOUR
+0137,05 37,,                INC 37H
+0139,E5 37,,                MOV A,37H
+013B,B4 18 03,,                CJNE A,#24,INT_C1_EXIT0
+013E,75 37 00,,                MOV 37H,#0
+0141,,INT_C1_EXIT0,INT_C1_EXIT0:
+0141,12 03 73,,                LCALL GET_LIGHT_TIME
+0144,,INT_C1_EXIT1,INT_C1_EXIT1:
+0144,D0 E0,,                POP ACC
+0146,32,,                RETI
+,,,;-------------地感线圈中断处理----------------
+0147,,INT_EX0,INT_EX0:
+0147,C0 E0,,                PUSH ACC
+0149,E5 90,,                MOV A,P1
+014B,B8 32 03,,                                        CJNE R0,#32H,INT_EX0_NEXT1
+014E,02 01 6D,,                                        LJMP INT_EX0_SHOOT2
+0151,B8 33 03,INT_EX0_NEXT1,INT_EX0_NEXT1:          CJNE R0,#33H,INT_EX0_NEXT2
+0154,02 01 6D,,                                        LJMP INT_EX0_SHOOT2
+0157,B8 34 03,INT_EX0_NEXT2,INT_EX0_NEXT2:          CJNE R0,#34H,INT_EX0_NEXT3
+015A,02 01 60,,                                        LJMP INT_EX0_SHOOT1
+015D,B8 35 17,INT_EX0_NEXT3,INT_EX0_NEXT3:          CJNE R0,#35H,INT_EX0_EXIT
+0160,20 90 02,INT_EX0_SHOOT1,INT_EX0_SHOOT1:         JB P1.0,INT_EX0_SHOOT11
+0163,D2 94,,                                        SETB P1.4
+0165,,INT_EX0_SHOOT11,INT_EX0_SHOOT11:
+0165,20 91 0F,,                                        JB P1.1,INT_EX0_EXIT
+0168,D2 95,,                                        SETB P1.5
+016A,02 01 77,,                                        LJMP INT_EX0_EXIT
+016D,20 92 02,INT_EX0_SHOOT2,INT_EX0_SHOOT2:         JB P1.2,INT_EX0_SHOOT22
+0170,D2 96,,                                        SETB P1.6
+0172,,INT_EX0_SHOOT22,INT_EX0_SHOOT22:
+0172,20 93 02,,                                        JB P1.3,INT_EX0_EXIT
+0175,D2 97,,                                        SETB P1.7
+0177,,INT_EX0_EXIT,INT_EX0_EXIT:
+0177,74 28,,                MOV A,#40
+0179,,INT_EX0_EXIT0,INT_EX0_EXIT0:
+0179,12 04 3B,,                LCALL DELAY10
+017C,D5 E0 FA,,                DJNZ ACC,INT_EX0_EXIT0
+017F,,INT_EX0_EXIT1,INT_EX0_EXIT1:
+017F,75 90 0F,,                MOV P1,#0FH
+0182,D0 E0,,                POP ACC
+0184,32,,                RETI
+,,,;-------------按键中断处理程序----------------
+0185,,INT_EX1,INT_EX1:                                                        ;外部中断1处理，键盘
+0185,C0 D0,,                PUSH PSW
+0187,C0 E0,,                PUSH ACC
+0189,E5 A0,,                MOV A,P2   ;判断是否有键按下
+018B,54 F8,,                ANL A,#0F8H
+018D,64 F8,,                XRL A,#0F8H
+018F,60 29,,                JZ INT_EX1_EXIT
+0191,12 04 3B,,                LCALL DELAY10
+0194,E5 A0,,                MOV A,P2   ;再次判断是否有键按下,消除前沿抖动
+0196,54 F8,,                ANL A,#0F8H
+0198,64 F8,,                XRL A,#0F8H
+019A,60 1E,,                JZ INT_EX1_EXIT
+019C,20 E3 0C,,                JB ACC.3,KEY01
+019F,20 E4 0C,,                JB ACC.4,KEY02
+01A2,20 E5 0C,,                JB ACC.5,KEY03
+01A5,20 E6 0C,,                JB ACC.6,KEY04
+01A8,20 E7 0C,,                JB ACC.7,KEY05
+01AB,02 01 CC,KEY01,                KEY01:LJMP KEY1
+01AE,02 01 FA,KEY02,                KEY02:LJMP KEY2
+01B1,02 02 4D,KEY03,                KEY03:LJMP KEY3
+01B4,02 02 52,KEY04,                KEY04:LJMP KEY4
+01B7,02 02 A3,KEY05,                KEY05:LJMP KEY5
+01BA,,INT_EX1_EXIT,INT_EX1_EXIT:
+01BA,E5 A0,,                MOV A,P2   ;判断是否有键按下，消除后沿抖动
+01BC,54 F8,,                ANL A,#0F8H
+01BE,64 F8,,                XRL A,#0F8H
+01C0,60 05,,                JZ INT_EX1_EXIT_1
+01C2,12 04 4C,,                LCALL DELAY4ms5
+01C5,80 F3,,                SJMP INT_EX1_EXIT
+01C7,,INT_EX1_EXIT_1,INT_EX1_EXIT_1:
+01C7,D0 E0,,                POP ACC
+01C9,D0 D0,,                POP PSW
+01CB,32,,                RETI
+,,,
+01CC,,KEY1,KEY1: ;开关键
+01CC,BC 00 14,,                CJNE R4,#00,KEY1_NEXT1
+01CF,7C 01,,                MOV R4,#1                ;开启屏
+01D1,85 37 3A,,                MOV 3AH,37H
+01D4,85 3A 38,,                MOV 38H,3AH
+01D7,12 03 63,,                LCALL HEX2BCD
+01DA,75 39 FD,,                MOV 39H,#LDD6
+01DD,12 03 E0,,                LCALL DISPLAY_NUMBER
+01E0,02 01 BA,,                LJMP INT_EX1_EXIT
+01E3,,KEY1_NEXT1,KEY1_NEXT1:
+01E3,7C 00,,                MOV R4,#0                ;关闭屏
+01E5,75 3A 00,,                MOV 3AH,#0
+01E8,75 3B 00,,                MOV 3BH,#0
+01EB,75 3C 00,,                MOV 3CH,#0
+01EE,75 38 FF,,                MOV 38H,#0FFH
+01F1,75 39 FD,,                MOV 39H,#LDD6
+01F4,12 03 E0,,                LCALL DISPLAY_NUMBER
+01F7,02 01 BA,,                LJMP INT_EX1_EXIT
+,,,
+01FA,,KEY2,KEY2:   ;确认键，OK键
+01FA,EC,,                MOV A,R4
+01FB,F9,,                MOV R1,A
+01FC,B9 00 03,,                CJNE R1,#0,KEY2_R01
+01FF,02 01 BA,,                LJMP INT_EX1_EXIT
+0202,D9 03,KEY2_R01,KEY2_R01:               DJNZ R1,KEY2_R02
+0204,02 02 11,,                                LJMP KEY2_R1
+0207,D9 03,KEY2_R02,KEY2_R02:               DJNZ R1,KEY2_R03
+0209,02 02 1E,,                                LJMP KEY2_R2
+020C,D9 AC,KEY2_R03,KEY2_R03:               DJNZ R1,INT_EX1_EXIT
+020E,02 02 2B,,                                LJMP KEY2_R3
+0211,,KEY2_R1,KEY2_R1:
+0211,0C,,                INC R4
+0212,85 3B 38,,                MOV 38H,3BH
+0215,75 39 FD,,                MOV 39H,#LDD6
+0218,12 03 E0,,                LCALL DISPLAY_NUMBER
+021B,02 01 BA,,                LJMP INT_EX1_EXIT
+021E,,KEY2_R2,KEY2_R2:
+021E,0C,,                INC R4
+021F,85 3C 38,,                MOV 38H,3CH
+0222,75 39 FD,,                MOV 39H,#LDD6
+0225,12 03 E0,,                LCALL DISPLAY_NUMBER
+0228,02 01 BA,,                LJMP INT_EX1_EXIT
+022B,,KEY2_R3,KEY2_R3:
+022B,7C 01,,                MOV R4,#1
+022D,85 3A 38,,                MOV 38H,3AH
+0230,12 03 63,,                LCALL HEX2BCD
+0233,75 39 FD,,                MOV 39H,#LDD6
+0236,12 03 E0,,                LCALL DISPLAY_NUMBER
+0239,E5 3A,,                MOV A,3AH
+023B,23,,                RL A
+023C,24 50,,                ADD A,#50H
+023E,C9,,                XCH A,R1
+023F,A7 3B,,                MOV @R1,3BH
+0241,09,,                INC R1
+0242,A7 3C,,                MOV @R1,3CH
+0244,75 3B 00,,                MOV 3BH,#00H
+0247,75 3C 00,,                MOV 3CH,#00H
+024A,02 01 BA,,                LJMP INT_EX1_EXIT
+,,,
+024D,B2 7F,KEY3,KEY3:   CPL 7FH                                         ;选位数
+024F,02 01 BA,,                LJMP INT_EX1_EXIT
+,,,
+0252,,KEY4,KEY4:                            ;加一
+0252,EC,,                MOV A,R4
+0253,F9,,                MOV R1,A
+0254,B9 00 03,,                CJNE R1,#0,KEY4_R01
+0257,02 01 BA,,                LJMP INT_EX1_EXIT
+025A,D9 19,KEY4_R01,KEY4_R01:               DJNZ R1,KEY4_R02
+025C,05 3A,,                                INC 3AH
+025E,E5 3A,,                                MOV A,3AH
+0260,B4 18 03,,                                CJNE A,#24,KEY4_R01_next
+0263,75 3A 00,,                                MOV 3AH,#0
+0266,85 3A 38,KEY4_R01_next,KEY4_R01_next:  MOV 38H,3AH
+0269,12 03 63,,                                LCALL HEX2BCD
+026C,75 39 FD,,                                MOV 39H,#LDD6
+026F,12 03 E0,,                                LCALL DISPLAY_NUMBER
+0272,02 01 BA,,                                LJMP INT_EX1_EXIT
+0275,D9 15,KEY4_R02,KEY4_R02:               DJNZ R1,KEY4_R03
+0277,85 3B 3D,,                                MOV 3DH,3BH
+027A,12 02 F4,,                                LCALL BCDINC
+027D,85 3D 3B,,                                MOV 3BH,3DH
+0280,85 3B 38,,                                MOV 38H,3BH
+0283,75 39 FD,,                                MOV 39H,#LDD6
+0286,12 03 E0,,                                LCALL DISPLAY_NUMBER
+0289,02 01 BA,,                                LJMP INT_EX1_EXIT
+028C,D9 12,KEY4_R03,KEY4_R03:               DJNZ R1,KEY4_EXIT
+028E,85 3C 3D,,                                MOV 3DH,3CH
+0291,12 02 F4,,                                LCALL BCDINC
+0294,85 3D 3C,,                                MOV 3CH,3DH
+0297,85 3C 38,,                                MOV 38H,3CH
+029A,75 39 FD,,                                MOV 39H,#LDD6
+029D,12 03 E0,,                                LCALL DISPLAY_NUMBER
+02A0,02 01 BA,KEY4_EXIT,KEY4_EXIT:              LJMP INT_EX1_EXIT
+,,,
+02A3,EC,KEY5,KEY5:                   MOV A,R4                ;减一
+02A4,F9,,                                MOV R1,A
+02A5,B9 00 03,,                                CJNE R1,#0,KEY5_R01
+02A8,02 01 BA,,                                LJMP INT_EX1_EXIT
+02AB,D9 19,KEY5_R01,KEY5_R01:               DJNZ R1,KEY5_R02
+02AD,E5 3A,,                                MOV A,3AH
+02AF,B4 00 03,,                                CJNE A,#0,KEY5_R01_next
+02B2,75 3A 18,,                                MOV 3AH,#24
+02B5,15 3A,KEY5_R01_next,KEY5_R01_next:  DEC 3AH
+02B7,85 3A 38,,                                MOV 38H,3AH
+02BA,12 03 63,,                                LCALL HEX2BCD
+02BD,75 39 FD,,                                MOV 39H,#LDD6
+02C0,12 03 E0,,                                LCALL DISPLAY_NUMBER
+02C3,02 01 BA,,                                LJMP INT_EX1_EXIT
+02C6,D9 15,KEY5_R02,KEY5_R02:               DJNZ R1,KEY5_R03
+02C8,85 3B 3D,,                                MOV 3DH,3BH
+02CB,12 03 1F,,                                LCALL BCDDEC
+02CE,85 3D 3B,,                                MOV 3BH,3DH
+02D1,85 3B 38,,                                MOV 38H,3BH
+02D4,75 39 FD,,                                MOV 39H,#LDD6
+02D7,12 03 E0,,                                LCALL DISPLAY_NUMBER
+02DA,02 01 BA,,                                LJMP INT_EX1_EXIT
+02DD,D9 12,KEY5_R03,KEY5_R03:               DJNZ R1,KEY5_EXIT
+02DF,85 3C 3D,,                                MOV 3DH,3CH
+02E2,12 03 1F,,                                LCALL BCDDEC
+02E5,85 3D 3C,,                                MOV 3CH,3DH
+02E8,85 3C 38,,                                MOV 38H,3CH
+02EB,75 39 FD,,                                MOV 39H,#LDD6
+02EE,12 03 E0,,                                LCALL DISPLAY_NUMBER
+02F1,02 01 BA,KEY5_EXIT,KEY5_EXIT:              LJMP INT_EX1_EXIT
+,,,
+02F4,C0 E0,BCDINC,BCDINC: PUSH ACC
+02F6,E5 3D,,                MOV A,3DH
+02F8,20 7F 10,,                JB 7FH,BCDINC_HIGH
+02FB,54 0F,,                ANL A,#0FH
+02FD,B4 09 06,,                CJNE A,#09H,BCDINC_LOW1
+0300,53 3D F0,,                ANL 3DH,#0F0H
+0303,02 03 1C,,                LJMP BCDINC_EXIT
+0306,,BCDINC_LOW1,BCDINC_LOW1:
+0306,05 3D,,                INC 3DH
+0308,02 03 1C,,                LJMP BCDINC_EXIT
+030B,,BCDINC_HIGH,BCDINC_HIGH:
+030B,54 F0,,                ANL A,#0F0H
+030D,B4 90 06,,                CJNE A,#90H,BCDINC_HIGH1
+0310,53 3D 0F,,                ANL 3DH,#0FH
+0313,02 03 1C,,                LJMP BCDINC_EXIT
+0316,,BCDINC_HIGH1,BCDINC_HIGH1:
+0316,E5 3D,,                MOV A,3DH
+0318,24 10,,                ADD A,#10H
+031A,F5 3D,,                MOV 3DH,A
+031C,,BCDINC_EXIT,BCDINC_EXIT:
+031C,D0 E0,,                POP ACC
+031E,22,,                RET
+,,,
+031F,C0 E0,BCDDEC,BCDDEC: PUSH ACC
+0321,E5 3D,,                MOV A,3DH
+0323,20 7F 10,,                JB 7FH,BCDDEC_HIGH
+0326,54 0F,,                ANL A,#0FH
+0328,B4 00 06,,                CJNE A,#00H,BCDDEC_LOW1
+032B,43 3D 09,,                ORL 3DH,#09H
+032E,02 03 47,,                LJMP BCDDEC_EXIT
+0331,,BCDDEC_LOW1,BCDDEC_LOW1:
+0331,15 3D,,                DEC 3DH
+0333,02 03 47,,                LJMP BCDDEC_EXIT
+0336,,BCDDEC_HIGH,BCDDEC_HIGH:
+0336,54 F0,,                ANL A,#0F0H
+0338,B4 00 06,,                CJNE A,#00H,BCDDEC_HIGH1
+033B,43 3D 90,,                ORL 3DH,#90H
+033E,02 03 47,,                LJMP BCDDEC_EXIT
+0341,,BCDDEC_HIGH1,BCDDEC_HIGH1:
+0341,E5 3D,,                MOV A,3DH
+0343,94 10,,                SUBB A,#10H
+0345,F5 3D,,                MOV 3DH,A
+0347,,BCDDEC_EXIT,BCDDEC_EXIT:
+0347,D0 E0,,                POP ACC
+0349,22,,                RET
+,,,
+034A,,CLOSEDIG,CLOSEDIG:
+034A,C0 E0,,                PUSH ACC
+034C,E5 3E,,                MOV A,3EH
+034E,20 7F 05,,                JB 7FH,CLOSEDIG_HIGH
+0351,44 0F,,                ORL A,#0FH
+0353,02 03 58,,                LJMP CLOSEDIG_EXIT
+0356,,CLOSEDIG_HIGH,CLOSEDIG_HIGH:
+0356,44 F0,,                ORL A,#0F0H
+0358,,CLOSEDIG_EXIT,CLOSEDIG_EXIT:
+0358,F5 38,,                MOV 38H,A
+035A,75 39 FD,,                MOV 39H,#LDD6
+035D,12 03 E0,,                LCALL DISPLAY_NUMBER
+0360,D0 E0,,                POP ACC
+0362,22,,                RET
+,,,;-------------END OF 按键中断处理程序----------------
+,,,
+0363,,HEX2BCD,HEX2BCD:                          ;将38H中的16进制数转为BCD码
+0363,C0 E0,,                PUSH ACC
+0365,E5 38,,                MOV A,38H
+0367,75 F0 0A,,                MOV B,#10
+036A,84,,                DIV AB
+036B,C4,,                SWAP A
+036C,45 F0,,                ORL A,B
+036E,F5 38,,                MOV 38H,A
+0370,D0 E0,,                POP ACC
+0372,22,,                RET
+,,,
+0373,,GET_LIGHT_TIME,GET_LIGHT_TIME:                                                 ;获取当前红绿灯时间子程序，存入30h和
+0373,C0 83,,                PUSH DPH
+0375,C0 82,,                PUSH DPL
+0377,C0 E0,,                PUSH ACC
+0379,C0 D0,,                PUSH PSW
+037B,D2 D3,,                SETB RS0
+037D,90 04 6D,,                MOV DPTR,#TAB_LIGHT_TIME ;读入信号灯延时信息,30H为绿灯，31H为红灯
+0380,E5 37,,                MOV A,37H
+0382,23,,                RL A
+0383,93,,                MOVC A,@A+DPTR
+0384,F5 30,,                MOV 30H,A
+0386,E5 37,,                MOV A,37H
+0388,23,,                RL A
+0389,04,,                INC A
+038A,93,,                MOVC A,@A+DPTR
+038B,F5 31,,                MOV 31H,A
+,,,                ;检查是否有用户自定义数据
+038D,E5 37,,                MOV A,37H
+038F,23,,                RL A
+0390,24 50,,                ADD A,#50H
+0392,F8,,                MOV R0,A
+0393,04,,                INC A
+0394,F9,,                MOV R1,A
+0395,E6,,                MOV A,@R0
+0396,47,,                ORL A,@R1
+0397,60 2E,,                JZ GET_LIGHT_TIME_EXIT ;若全为零，说明无用户定义数据，直接跳出
+0399,B6 00 02,,                CJNE @R0,#00H,GET_LIGHT_TIME_NEXT1
+039C,61 A0,,                AJMP GET_LIGHT_TIME_NEXT2
+039E,,GET_LIGHT_TIME_NEXT1,GET_LIGHT_TIME_NEXT1:
+039E,86 30,,                MOV 30H,@R0
+03A0,,GET_LIGHT_TIME_NEXT2,GET_LIGHT_TIME_NEXT2:
+03A0,B7 00 02,,                CJNE @R1,#00H,GET_LIGHT_TIME_NEXT3
+03A3,61 A7,,                AJMP GET_LIGHT_TIME_FILL1
+03A5,,GET_LIGHT_TIME_NEXT3,GET_LIGHT_TIME_NEXT3:
+03A5,87 31,,                MOV 31H,@R1
+03A7,,GET_LIGHT_TIME_FILL1,GET_LIGHT_TIME_FILL1:
+03A7,E6,,                MOV A,@R0 ;检查用户定义数据是否完整，不完整则以默认数据补充(默认为，红灯比绿灯长3秒)
+03A8,57,,                ANL A,@R1
+03A9,70 1C,,                JNZ GET_LIGHT_TIME_EXIT ;若有一个为零，则更改其为默认值
+03AB,B6 00 0E,,                CJNE @R0,#00H,GET_LIGHT_TIME_FILL2
+03AE,87 36,,                MOV 36H,@R1
+03B0,12 04 21,,                LCALL SUBBCD
+03B3,12 04 21,,                LCALL SUBBCD
+03B6,12 04 21,,                LCALL SUBBCD
+03B9,85 36 30,,                MOV 30H,36H
+03BC,,GET_LIGHT_TIME_FILL2,GET_LIGHT_TIME_FILL2:
+03BC,B7 00 08,,                CJNE @R1,#00H,GET_LIGHT_TIME_EXIT
+03BF,E6,,                MOV A,@R0
+03C0,C2 D7,,                CLR CY
+03C2,24 03,,                ADD A,#3
+03C4,D4,,                DA A
+03C5,F5 31,,                MOV 31H,A
+03C7,,GET_LIGHT_TIME_EXIT,GET_LIGHT_TIME_EXIT:
+03C7,C2 D3,,                CLR RS0
+03C9,D0 D0,,                POP PSW
+03CB,D0 E0,,                POP ACC
+03CD,D0 82,,                POP DPL
+03CF,D0 83,,                POP DPH
+03D1,22,,                RET
+,,,;--------------------
+03D2,,CHANGE_LIGHT,CHANGE_LIGHT:                           ;开信号灯子程序
+03D2,C0 83,,                PUSH DPH
+03D4,C0 E0,,                PUSH ACC
+03D6,75 83 FE,,                MOV DPH,#LED
+03D9,E6,,                MOV A,@R0
+03DA,F0,,                MOVX @DPTR,A
+03DB,D0 E0,,                POP ACC
+03DD,D0 83,,                POP DPH
+03DF,22,,                RET
+,,,;-------------------------
+03E0,,DISPLAY_NUMBER,DISPLAY_NUMBER:                         ;显示倒计时数字子程序，显示38H中的数字到39H指定的地址中 先显
+03E0,C0 E0,,                PUSH ACC
+03E2,E5 38,,                MOV A,38H
+03E4,53 38 0F,,                ANL 38H,#0FH
+03E7,12 04 04,,                LCALL GETDIGIT
+03EA,85 39 83,,                MOV DPH,39H
+03ED,12 04 19,,                LCALL DISDIGIT
+03F0,C4,,                SWAP A
+03F1,F5 38,,                MOV 38H,A
+03F3,53 38 0F,,                ANL 38H,#0FH
+03F6,12 04 04,,                LCALL GETDIGIT
+03F9,15 39,,                DEC 39H
+03FB,85 39 83,,                MOV DPH,39H
+03FE,12 04 19,,                LCALL DISDIGIT
+0401,D0 E0,,                POP ACC
+0403,22,,                RET
+,,,;-----------------------------
+0404,,GETDIGIT,GETDIGIT:                                       ;取段码子程序
+0404,C0 83,,                PUSH DPH
+0406,C0 82,,                PUSH DPL
+0408,C0 E0,,                PUSH ACC
+040A,90 04 5D,,                MOV DPTR,#DIGIT
+040D,E5 38,,                MOV A,38H
+040F,93,,                MOVC A,@A+DPTR
+0410,C5 38,,                XCH A,38H
+0412,D0 E0,,                POP ACC
+0414,D0 82,,                POP DPL
+0416,D0 83,,                POP DPH
+0418,22,,                RET
+,,,;--------------------------------
+0419,,DISDIGIT,DISDIGIT:                                       ;送数码管显示子程序
+0419,C0 E0,,                PUSH ACC
+041B,E5 38,,                MOV     A,38H
+041D,F0,,                MOVX @DPTR,A
+041E,D0 E0,,                POP ACC
+0420,22,,                RET
+,,,;------------------------------
+0421,,SUBBCD,SUBBCD:                                         ;BCD码减一,对36H中的数做BCD码减1
+0421,C0 E0,,                PUSH ACC
+0423,C0 D0,,                PUSH PSW
+0425,15 36,,                DEC 36H
+0427,E5 36,,                MOV A,36H
+0429,54 0F,,                ANL A,#0FH
+042B,B4 0F 08,,                CJNE A,#0FH,SUBBCD_EXIT
+042E,C2 D7,,                CLR CY
+0430,E5 36,,                MOV A,36H
+0432,94 06,,                SUBB A,#06
+0434,F5 36,,                MOV 36H,A
+0436,,SUBBCD_EXIT,SUBBCD_EXIT:
+0436,D0 D0,,                POP PSW
+0438,D0 E0,,                POP ACC
+043A,22,,                RET
+,,,
+043B,,DELAY10,DELAY10:
+043B,00,,                NOP
+043C,75 40 09,,                MOV 40H,#9
+043F,75 41 FF,DL10_1,DL10_1: MOV 41H,#255
+0442,00,DL10_2,DL10_2: NOP
+0443,00,,                NOP
+0444,D5 41 FB,,                DJNZ 41H,DL10_2
+0447,D5 40 F5,,                DJNZ 40H,DL10_1
+044A,00,,                NOP
+044B,22,,                RET
+,,,
+044C,,DELAY4ms5,DELAY4ms5:
+044C,75 40 04,,                MOV 40H,#4
+044F,75 41 D2,DL45_1,DL45_1: MOV 41H,#210
+0452,00,DL45_2,DL45_2: NOP
+0453,00,,                NOP
+0454,00,,                NOP
+0455,D5 41 FA,,                DJNZ 41H,DL45_2
+0458,D5 40 F4,,                DJNZ 40H,DL45_1
+045B,00,,                NOP
+045C,22,,                RET
+,,,;;------------TABLES----------------
+045D,,DIGIT,DIGIT:                                                  ;LED数码管段码表
+045D,3F 06 5B 4F,,                DB 3FH,06H,5BH,4FH,66H
+0462,6D 7D 07 7F,,                DB 6DH,7DH,07H,7FH,6FH
+0467,77 7C 39 5E,,                DB 77H,7CH,39H,5EH,79H,00H
+046D,,TAB_LIGHT_TIME,TAB_LIGHT_TIME:                                 ;预设的信号灯时间常数，共24行，48个值
+046D,02 05,,                DB 02H, 05H
+046F,11 14,,                DB 11H, 14H
+0471,03 06,,                DB 03H, 06H
+0473,04 07,,                DB 04H, 07H
+0475,05 08,,                DB 05H, 08H
+0477,06 09,,                DB 06H, 09H
+0479,01 10,,                DB 01H, 10H
+047B,02 11,,                DB 02H, 11H
+047D,03 05,,                DB 03H, 05H
+047F,04 06,,                DB 04H, 06H
+0481,05 07,,                DB 05H, 07H
+0483,06 08,,                DB 06H, 08H
+0485,01 03,,                DB 01H, 03H
+0487,02 04,,                DB 02H, 04H
+0489,03 05,,                DB 03H, 05H
+048B,04 06,,                DB 04H, 06H
+048D,05 07,,                DB 05H, 07H
+048F,06 08,,                DB 06H, 08H
+0491,01 03,,                DB 01H, 03H
+0493,02 04,,                DB 02H, 04H
+0495,03 05,,                DB 03H, 05H
+0497,04 06,,                DB 04H, 06H
+0499,05 07,,                DB 05H, 07H
+049B,24 26,,                DB 24H, 26H
+,,,;----------- END --------------------
+000E,,,END
