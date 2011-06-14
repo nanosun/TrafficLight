@@ -41,7 +41,7 @@
 		Y_R2 EQU 1010B
 		R_G3 EQU 100001B
 		R_Y4 EQU 10001B
-		SECS_PER_MIN EQU 5  ;每分中的秒数，调试用
+		SECS_PER_MIN EQU 10  ;每分中的秒数，调试用
 		MINS_PER_HOUR EQU 6 ;每小时中的分数，调试用																							
 ;-----------------------------------------------------------	
 ;;--------------MAIN PROGRAM BEGIN---------------------------
@@ -54,16 +54,16 @@ MAIN:
 		MOV 34H,#R_G3
 		MOV 35H,#R_Y4
 		MOV TMOD,#61H	;初始化计时器 定时器0方式1 计数器1方式2
-		MOV TH0,#1FH	;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
-		MOV TL0,#00H
+		MOV TH0,#1FH	
+		MOV TL0,#00H	;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
 		MOV TH1,#0FCH
 		MOV TL1,#0FCH	;4. 0.5S ;	
 		MOV R6,#SECS_PER_MIN ;每分中的秒数，调试用
 		MOV R7,#MINS_PER_HOUR ;每小时中的分数，调试用
-		MOV 37H,#23	;初始化当前时间（小时状态）
-		MOV 7EH,#03H	;测试RAM中红绿灯时间表用
-		MOV 7FH,#00H
-		LCALL GET_LIGHT_TIME ;获取倒计时时间
+		MOV 37H,#23		;初始化当前时间（小时状态）
+		;MOV 7EH,#03H	;测试RAM中红绿灯时间表用
+		;MOV 7FH,#00H
+		LCALL GET_LIGHT_TIME ;获取倒计时时间存入 30H,31H
 		MOV R0,#32H	;R0记录信号灯寄存器状态
 		MOV R3,30H
 		MOV R2,31H
@@ -74,22 +74,22 @@ MAIN:
 		MOV 38H,R2
 		MOV 39H,#LDD4
 		LCALL DISPLAY_NUMBER
-		;中断优先级处理，待完成
+		;中断优先级处理
 		MOV IP,#00001010B	 ;优先级依次为 t0 t1 x0 x1
 		SETB ET0
 		SETB ET1
 		SETB EX0
 		SETB EX1
+		SETB EA
 		SETB IT0
 		SETB IT1
-		SETB EA
 		SETB TR0
 		SETB TR1
 		;初始化完毕，开始计时
 		SJMP $
 ;;-------------- END OF MAIN -----------------
 INT_TO:								;计时器0中断处理程序
-		MOV TH0,#1FH 
+		MOV TH0,#1FH 				; 时间常数仍待优化
 		MOV TL0,#00H
 		CPL P3.5 
 		RETI
@@ -193,16 +193,16 @@ INT_EX0_NEXT1:		CJNE R0,#33H,INT_EX0_NEXT2
 INT_EX0_NEXT2:		CJNE R0,#34H,INT_EX0_NEXT3
 					LJMP INT_EX0_SHOOT1
 INT_EX0_NEXT3:		CJNE R0,#35H,INT_EX0_EXIT
-INT_EX0_SHOOT1:		JB P1.0,INT_EX0_SHOOT11
+INT_EX0_SHOOT1:		JB ACC.0,INT_EX0_SHOOT11
 					SETB P1.4
 INT_EX0_SHOOT11:
-					JB P1.1,INT_EX0_EXIT
+					JB ACC.1,INT_EX0_EXIT
 					SETB P1.5
 					LJMP INT_EX0_EXIT
-INT_EX0_SHOOT2:		JB P1.2,INT_EX0_SHOOT22
+INT_EX0_SHOOT2:		JB ACC.2,INT_EX0_SHOOT22
 					SETB P1.6
 INT_EX0_SHOOT22:
-					JB P1.3,INT_EX0_EXIT
+					JB ACC.3,INT_EX0_EXIT
 					SETB P1.7
 INT_EX0_EXIT:
 		MOV A,#30
@@ -305,6 +305,13 @@ KEY2_R3:
 		MOV @R1,3CH
 		MOV 3BH,#00H
 		MOV 3CH,#00H
+		MOV R1,3AH
+		MOV A,37H
+		CLR CY
+		SUBB A,R1
+		CJNE A,#00H,KEY2_R3_EXIT
+		LCALL GET_LIGHT_TIME
+KEY2_R3_EXIT:
 		LJMP INT_EX1_EXIT
 
 KEY3:	CPL 7FH						;选位数
@@ -445,9 +452,9 @@ HEX2BCD:			  ;将38H中的16进制数转为BCD码
 		MOV 38H,A
 		POP ACC
 		RET
-
+;---------------------------
 GET_LIGHT_TIME:							;获取当前红绿灯时间子程序，存入30h和31h
-		PUSH DPH
+		PUSH DPH						;默认红灯绿灯的自定义时间都需要大于0，且红灯时间大于3秒	(红灯时长比绿灯长)
 		PUSH DPL
 		PUSH ACC
 		PUSH PSW
@@ -490,7 +497,14 @@ GET_LIGHT_TIME_FILL1:
 		LCALL SUBBCD
 		LCALL SUBBCD
 		LCALL SUBBCD
-		MOV 30H,36H
+		MOV A,36H
+		ANL A,#0F0H
+		CJNE A,#0F0H,GET_LIGHT_TIME_FILL11
+		MOV @R0,#00H
+		MOV @R1,#00H
+		LCALL GET_LIGHT_TIME
+		LJMP GET_LIGHT_TIME_EXIT					  ;避免减3之后，绿灯时长小于1秒，直接视为无效的自定义数据
+GET_LIGHT_TIME_FILL11:		MOV 30H,36H
 GET_LIGHT_TIME_FILL2:
 		CJNE @R1,#00H,GET_LIGHT_TIME_EXIT
 		MOV A,@R0
@@ -596,29 +610,29 @@ DIGIT:							;LED数码管段码表
 		DB 6DH,7DH,07H,7FH,6FH
 		DB 77H,7CH,39H,5EH,79H,00H
 TAB_LIGHT_TIME:  				;预设的信号灯时间常数，共24行，48个值
+		DB 01H, 04H
 		DB 02H, 05H
-		DB 11H, 14H
 		DB 03H, 06H
 		DB 04H, 07H
 		DB 05H, 08H
 		DB 06H, 09H
-		DB 01H, 10H
-		DB 02H, 11H
-		DB 03H, 05H
-		DB 04H, 06H
-		DB 05H, 07H
-		DB 06H, 08H
-		DB 01H, 03H
-		DB 02H, 04H
-		DB 03H, 05H
-		DB 04H, 06H
-		DB 05H, 07H
-		DB 06H, 08H
-		DB 01H, 03H
-		DB 02H, 04H
-		DB 03H, 05H
-		DB 04H, 06H
-		DB 05H, 07H
-		DB 24H, 26H
+		DB 07H, 10H
+		DB 08H, 11H
+		DB 09H, 12H
+		DB 10H, 13H
+		DB 11H, 14H
+		DB 12H, 15H
+		DB 13H, 16H
+		DB 14H, 17H
+		DB 15H, 18H
+		DB 16H, 19H
+		DB 17H, 20H
+		DB 18H, 21H
+		DB 19H, 22H
+		DB 20H, 23H
+		DB 21H, 24H
+		DB 22H, 25H
+		DB 23H, 26H
+		DB 24H, 27H
 ;----------- END --------------------
 END
