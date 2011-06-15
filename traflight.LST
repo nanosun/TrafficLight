@@ -1,812 +1,1000 @@
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     1
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 1
 
 
-MACRO ASSEMBLER A51 V8.02
-OBJECT MODULE PLACED IN traflight.OBJ
-ASSEMBLER INVOKED BY: D:\Program Files\Keil\C51\BIN\A51.EXE traflight.asm SET(SMALL) DEBUG EP
-
-LOC  OBJ            LINE     SOURCE
-
-                       1     ;;------------------------
-                       2     ;;TrafLight v1.5
-                       3     ;;by SN icetiny@gmail.com
-                       4     ;;2011-6-10
-                       5     ;;Íê³É¼üÅÌ»ù±¾¹¦ÄÜ
-                       6     ;;------------------------
-                       7     ;;R0     R1                       R2                      R3                    R6         
-                                    R7      R5                     R4
-                       8     ;;µÆ×´Ì¬ ÁÙÊ±Ê¹ÓÃ 2ºìµÆµ¹¼ÆÊ±     1ÂÌµÆµ¹¼ÆÊ±    Ãë×´Ì¬ÊÂë       ·Ö×´Ì¬   ¿Õ     ÆÁ×´Ì¬£¨0¿
-                             ª1Ñ¡¶Î2µ÷Ê±¼ä3µ÷ÂÌµÆÊ±¼ä£©
-                       9     ;;------------------------
-                      10     ;;30H  31H  32H-35H        36H            37H                   38H              39H       
-                                                   3AH         3BH     3CH                        Î»7F       3DH        
-                                                                               3EH
-                      11     ;;ÂÌµÆ ºìµÆ     µÆ×´Ì¬µØÖ· ¼õÒ»ÓÃ  µ±Ç°Ð¡Ê±×´Ì¬Âë  LEDÏÔÊ¾¼Ä´æÆ÷ ÊÂë¹ÜµØÖ·¸ß°ËÎ»         ÆÁ
-                             ¶Î(HEXÂë) ÆÁÂÌµÆ ÆÁºìµÆ£¨BCDÂë£©     Ñ¡Î»±êÖ¾   BCDINCºÍBCDDEC×Ó³ÌÐòµÄ²Ù×÷Î»    ÉÁË¸¹ØµÆ³ÌÐòÊ¾Ý´«µÝÎ»
-                      12     ;;------------------------
-                      13     ;;50H-7FH                         40H 41H                                 Î»7E
-                      14     ;;ÓÃ»§¶¨ÒåµÆ×´Ì¬          delay10ÖÐÓÃµ½µÄ±äÁ¿  Çø·ÖÒ»ÃëÖÐµÄÉÏÏÂ°ëÃë
-                      15     ;;------------------------
-                      16     ;;¼üÅÌ
-                      17     ;; 1        2       3          4  5
-                      18     ;;on/off   ok/next      <>Ñ¡Î»     +  -
-                      19     ;;------------------------
-                      20     
-0000                  21                     ORG 0000H
-0000 0130             22                     AJMP MAIN
-                      23     ;----------------INTERRUPT VECTORS--------------------------
-0003                  24                     ORG 0003H ;Íâ²¿ÖÐ¶Ï0
-0003 020147           25                     LJMP INT_EX0
-000B                  26                     ORG 000BH                                                       
-000B 020091           27                     LJMP INT_TO                                                     
-0013                  28                     ORG 0013H ;Íâ²¿ÖÐ¶Ï1                                            
-0013 020185           29                     LJMP INT_EX1                                                    
-001B                  30                     ORG 001BH                                                       
-001B 02009A           31                     LJMP INT_C1                                                     
-                      32     ;------------DEFINE CONSTANT VALUE--------------------------
-  00F8                33                     LDD1 EQU 0f8H ;ÊÂë¹ÜµØÖ·
-  00F9                34                     LDD2 EQU 0f9H
-  00FA                35                     LDD3 EQU 0faH
-  00FB                36                     LDD4 EQU 0fbH
-  00FC                37                     LDD5 EQU 0fcH
-  00FD                38                     LDD6 EQU 0fdH
-  00FE                39                     LED  EQU 0feH ;µÆµØÖ·
-  000C                40                     G_R1 EQU 1100B
-  000A                41                     Y_R2 EQU 1010B
-  0021                42                     R_G3 EQU 100001B
-  0011                43                     R_Y4 EQU 10001B
-  0005                44                     SECS_PER_MIN EQU 5  ;Ã¿·ÖÖÐµÄÃëÊ£¬µ÷ÊÔÓÃ
-  0006                45                     MINS_PER_HOUR EQU 6 ;Ã¿Ð¡Ê±ÖÐµÄ·ÖÊ£¬µ÷ÊÔÓÃ                                 
-                                                                                                                        
-                                                                                       
-                      46     ;-----------------------------------------------------------    
-                      47     ;;--------------MAIN PROGRAM BEGIN---------------------------
-0030                  48                     ORG 0030H                                
-0030                  49     MAIN:   
-0030 758110           50                     MOV SP,#10H
-0033 75900F           51                     MOV P1,#0FH
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     2
-
-0036 75320C           52                     MOV 32H,#G_R1
-0039 75330A           53                     MOV 33H,#Y_R2
-003C 753421           54                     MOV 34H,#R_G3
-003F 753511           55                     MOV 35H,#R_Y4
-0042 758961           56                     MOV TMOD,#61H   ;³õÊ¼»¯¼ÆÊ±Æ÷ ¶¨Ê±Æ÷0·½Ê½1 ¼ÆÊÆ÷1·½Ê½2
-0045 758C1F           57                     MOV TH0,#1FH    ;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
-0048 758A00           58                     MOV TL0,#00H
-004B 758DFC           59                     MOV TH1,#0FCH
-004E 758BFC           60                     MOV TL1,#0FCH   ;4. 0.5S ;      
-0051 7E05             61                     MOV R6,#SECS_PER_MIN ;Ã¿·ÖÖÐµÄÃëÊ£¬µ÷ÊÔÓÃ
-0053 7F06             62                     MOV R7,#MINS_PER_HOUR ;Ã¿Ð¡Ê±ÖÐµÄ·ÖÊ£¬µ÷ÊÔÓÃ
-0055 753717           63                     MOV 37H,#23     ;³õÊ¼»¯µ±Ç°Ê±¼ä£¨Ð¡Ê±×´Ì¬£©
-0058 757E03           64                     MOV 7EH,#03H    ;²âÊÔRAMÖÐºìÂÌµÆÊ±¼ä±íÓÃ
-005B 757F00           65                     MOV 7FH,#00H
-005E 120373           66                     LCALL GET_LIGHT_TIME ;»ñÈ¡µ¹¼ÆÊ±Ê±¼ä
-0061 7832             67                     MOV R0,#32H     ;R0¼ÇÂ¼ÐÅºÅµÆ¼Ä´æÆ÷×´Ì¬
-0063 AB30             68                     MOV R3,30H
-0065 AA31             69                     MOV R2,31H
-0067 1203D2           70                     LCALL CHANGE_LIGHT      ;¿ªÐÅºÅµÆ
-006A 8B38             71                     MOV 38H,R3         ;ËÍÏÔÊ¾£¬¿ªÊÂë¹Ü
-006C 7539F9           72                     MOV 39H,#LDD2
-006F 1203E0           73                     LCALL DISPLAY_NUMBER
-0072 8A38             74                     MOV 38H,R2
-0074 7539FB           75                     MOV 39H,#LDD4
-0077 1203E0           76                     LCALL DISPLAY_NUMBER
-                      77                     ;ÖÐ¶ÏÓÅÏÈ¼¶´¦Àí£¬´Íê³É
-007A 75B80A           78                     MOV IP,#00001010B        ;ÓÅÏÈ¼¶ÒÀ´ÎÎª t0 t1 x0 x1
-007D D2A9             79                     SETB ET0
-007F D2AB             80                     SETB ET1
-0081 D2A8             81                     SETB EX0
-0083 D2AA             82                     SETB EX1
-0085 D288             83                     SETB IT0
-0087 D28A             84                     SETB IT1
-0089 D2AF             85                     SETB EA
-008B D28C             86                     SETB TR0
-008D D28E             87                     SETB TR1
-                      88                     ;³õÊ¼»¯Íê±Ï£¬¿ªÊ¼¼ÆÊ±
-008F 80FE             89                     SJMP $
-                      90     ;;-------------- END OF MAIN -----------------
-0091                  91     INT_TO:                                                         ;¼ÆÊ±Æ÷0ÖÐ¶Ï´¦Àí³ÌÐò
-0091 758C1F           92                     MOV TH0,#1FH 
-0094 758A00           93                     MOV TL0,#00H
-0097 B2B5             94                     CPL P3.5 
-0099 32               95                     RETI
-                      96                     
-009A                  97     INT_C1:                                                         ;¼ÆÊÆ÷1ÖÐ¶Ï´¦Àí³ÌÐò
-009A C0E0             98                     PUSH ACC
-009C B27E             99                     CPL 7EH
-009E 207E1E          100                     JB 7EH,INT_C1_NORMAL
-00A1                 101     INT_C1_BLINK:
-00A1 EC              102                     MOV A,R4
-00A2 6018            103                     JZ INT_C1_BLINK_EXIT            
-00A4 EC              104                     MOV A,R4
-00A5 C3              105                     CLR C
-00A6 9402            106                     SUBB A,#2
-00A8 10D711          107                     JBC CY,INT_C1_BLINK_EXIT
-00AB 7009            108                     JNZ INT_C1_BLINK_RED
-00AD 853B3E          109                     MOV 3EH,3BH
-00B0 12034A          110                     LCALL CLOSEDIG
-00B3 020144          111                     LJMP INT_C1_EXIT1
-00B6                 112     INT_C1_BLINK_RED:
-00B6 853C3E          113                     MOV 3EH,3CH
-00B9 12034A          114                     LCALL CLOSEDIG          
-00BC                 115     INT_C1_BLINK_EXIT:
-00BC 020144          116                     LJMP INT_C1_EXIT1                               
-00BF                 117     INT_C1_NORMAL:
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     3
-
-00BF EC              118                     MOV A,R4
-00C0 601E            119                     JZ INT_C1_NORMAL1               
-00C2 EC              120                     MOV A,R4
-00C3 C3              121                     CLR C
-00C4 9402            122                     SUBB A,#2
-00C6 10D717          123                     JBC CY,INT_C1_NORMAL1
-00C9 700C            124                     JNZ INT_C1_UNBLINK_RED
-00CB 853B38          125                     MOV 38H,3BH
-00CE 7539FD          126                     MOV 39H,#LDD6
-00D1 1203E0          127                     LCALL DISPLAY_NUMBER
-00D4 0200E0          128                     LJMP INT_C1_NORMAL1
-00D7                 129     INT_C1_UNBLINK_RED:
-00D7 853C38          130                     MOV 38H,3CH
-00DA 7539FD          131                     MOV 39H,#LDD6
-00DD 1203E0          132                     LCALL DISPLAY_NUMBER                            
-00E0 8B36            133     INT_C1_NORMAL1:         MOV 36H,R3
-00E2 120421          134                     LCALL SUBBCD
-00E5 AB36            135                     MOV R3,36H
-00E7 8A36            136                     MOV 36H,R2
-00E9 120421          137                     LCALL SUBBCD
-00EC AA36            138                     MOV R2,36H
-00EE BAF925          139                     CJNE R2,#0F9H,INT_C1_NEXT2
-00F1 08              140                     INC R0
-00F2 B8360B          141                     CJNE R0,#36H,INT_C1_NEXT0
-00F5 7832            142                     MOV R0,#32H
-00F7 1203D2          143                     LCALL CHANGE_LIGHT
-00FA AB30            144                     MOV R3,30H
-00FC AA31            145                     MOV R2,31H
-00FE 801F            146                     SJMP INT_C1_EXIT
-0100                 147     INT_C1_NEXT0:
-0100 B83409          148                     CJNE R0,#34H,INT_C1_NEXT1
-0103 1203D2          149                     LCALL CHANGE_LIGHT
-0106 AB31            150                     MOV R3,31H
-0108 AA30            151                     MOV R2,30H
-010A 8013            152                     SJMP INT_C1_EXIT
-010C                 153     INT_C1_NEXT1:
-010C B83507          154                     CJNE R0,#35H,INT_C1_NEXT2
-010F 1203D2          155                     LCALL CHANGE_LIGHT
-0112 EB              156                     MOV A,R3
-0113 CA              157                     XCH A,R2
-0114 8009            158                     SJMP INT_C1_EXIT
-0116                 159     INT_C1_NEXT2:
-0116 BBF906          160                     CJNE R3,#0F9H,INT_C1_EXIT
-0119 08              161                     INC R0
-011A 1203D2          162                     LCALL CHANGE_LIGHT
-011D EA              163                     MOV A,R2
-011E CB              164                     XCH A,R3
-011F                 165     INT_C1_EXIT:
-011F 8B38            166                     MOV 38H,R3         ;ËÍÏÔÊ¾
-0121 7539F9          167                     MOV 39H,#LDD2
-0124 1203E0          168                     LCALL DISPLAY_NUMBER
-0127 8A38            169                     MOV 38H,R2
-0129 7539FB          170                     MOV 39H,#LDD4
-012C 1203E0          171                     LCALL DISPLAY_NUMBER
-012F DE13            172                     DJNZ R6,INT_C1_EXIT1
-0131 7E05            173                     MOV R6,#SECS_PER_MIN
-0133 DF0F            174                     DJNZ R7,INT_C1_EXIT1
-0135 7F06            175                     MOV R7,#MINS_PER_HOUR
-0137 0537            176                     INC 37H
-0139 E537            177                     MOV A,37H
-013B B41803          178                     CJNE A,#24,INT_C1_EXIT0
-013E 753700          179                     MOV 37H,#0
-0141                 180     INT_C1_EXIT0:
-0141 120373          181                     LCALL GET_LIGHT_TIME
-0144                 182     INT_C1_EXIT1:
-0144 D0E0            183                     POP ACC
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     4
-
-0146 32              184                     RETI
-                     185     ;-------------µØ¸ÐÏßÈ¦ÖÐ¶Ï´¦Àí----------------
-0147                 186     INT_EX0:
-0147 C0E0            187                     PUSH ACC
-0149 E590            188                     MOV A,P1
-014B B83203          189                                             CJNE R0,#32H,INT_EX0_NEXT1
-014E 02016D          190                                             LJMP INT_EX0_SHOOT2
-0151 B83303          191     INT_EX0_NEXT1:          CJNE R0,#33H,INT_EX0_NEXT2
-0154 02016D          192                                             LJMP INT_EX0_SHOOT2
-0157 B83403          193     INT_EX0_NEXT2:          CJNE R0,#34H,INT_EX0_NEXT3
-015A 020160          194                                             LJMP INT_EX0_SHOOT1
-015D B83517          195     INT_EX0_NEXT3:          CJNE R0,#35H,INT_EX0_EXIT
-0160 209002          196     INT_EX0_SHOOT1:         JB P1.0,INT_EX0_SHOOT11
-0163 D294            197                                             SETB P1.4
-0165                 198     INT_EX0_SHOOT11:
-0165 20910F          199                                             JB P1.1,INT_EX0_EXIT
-0168 D295            200                                             SETB P1.5
-016A 020177          201                                             LJMP INT_EX0_EXIT
-016D 209202          202     INT_EX0_SHOOT2:         JB P1.2,INT_EX0_SHOOT22
-0170 D296            203                                             SETB P1.6
-0172                 204     INT_EX0_SHOOT22:
-0172 209302          205                                             JB P1.3,INT_EX0_EXIT
-0175 D297            206                                             SETB P1.7
-0177                 207     INT_EX0_EXIT:
-0177 741E            208                     MOV A,#30
-0179                 209     INT_EX0_EXIT0:
-0179 12043B          210                     LCALL DELAY10
-017C D5E0FA          211                     DJNZ ACC,INT_EX0_EXIT0
-017F                 212     INT_EX0_EXIT1:
-017F 75900F          213                     MOV P1,#0FH
-0182 D0E0            214                     POP ACC
-0184 32              215                     RETI
-                     216     ;-------------°´¼üÖÐ¶Ï´¦Àí³ÌÐò----------------
-0185                 217     INT_EX1:                                                        ;Íâ²¿ÖÐ¶Ï1´¦Àí£¬¼üÅÌ
-0185 C0D0            218                     PUSH PSW
-0187 C0E0            219                     PUSH ACC
-0189 E5A0            220                     MOV A,P2   ;ÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ
-018B 54F8            221                     ANL A,#0F8H
-018D 64F8            222                     XRL A,#0F8H
-018F 6029            223                     JZ INT_EX1_EXIT 
-0191 12043B          224                     LCALL DELAY10
-0194 E5A0            225                     MOV A,P2   ;ÔÙ´ÎÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ,Ïû³Ç°ÑØ¶¶¶¯
-0196 54F8            226                     ANL A,#0F8H
-0198 64F8            227                     XRL A,#0F8H
-019A 601E            228                     JZ INT_EX1_EXIT
-019C 20E30C          229                     JB ACC.3,KEY01
-019F 20E40C          230                     JB ACC.4,KEY02
-01A2 20E50C          231                     JB ACC.5,KEY03
-01A5 20E60C          232                     JB ACC.6,KEY04
-01A8 20E70C          233                     JB ACC.7,KEY05
-01AB 0201CC          234                     KEY01:LJMP KEY1
-01AE 0201FA          235                     KEY02:LJMP KEY2         
-01B1 02024D          236                     KEY03:LJMP KEY3
-01B4 020252          237                     KEY04:LJMP KEY4
-01B7 0202A3          238                     KEY05:LJMP KEY5
-01BA                 239     INT_EX1_EXIT:
-01BA E5A0            240                     MOV A,P2   ;ÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ£¬Ïû³ºóÑØ¶¶¶¯
-01BC 54F8            241                     ANL A,#0F8H
-01BE 64F8            242                     XRL A,#0F8H
-01C0 6005            243                     JZ INT_EX1_EXIT_1
-01C2 12044C          244                     LCALL DELAY4ms5
-01C5 80F3            245                     SJMP INT_EX1_EXIT
-01C7                 246     INT_EX1_EXIT_1:
-01C7 D0E0            247                     POP ACC
-01C9 D0D0            248                     POP PSW
-01CB 32              249                     RETI
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     5
-
-                     250     
-01CC                 251     KEY1: ;¿ª¹Ø¼ü
-01CC BC0014          252                     CJNE R4,#00,KEY1_NEXT1
-01CF 7C01            253                     MOV R4,#1                ;¿ªÆôÆÁ
-01D1 85373A          254                     MOV 3AH,37H 
-01D4 853A38          255                     MOV 38H,3AH
-01D7 120363          256                     LCALL HEX2BCD
-01DA 7539FD          257                     MOV 39H,#LDD6
-01DD 1203E0          258                     LCALL DISPLAY_NUMBER
-01E0 0201BA          259                     LJMP INT_EX1_EXIT
-01E3                 260     KEY1_NEXT1:
-01E3 7C00            261                     MOV R4,#0                ;¹Ø±ÕÆÁ  
-01E5 753A00          262                     MOV 3AH,#0
-01E8 753B00          263                     MOV 3BH,#0
-01EB 753C00          264                     MOV 3CH,#0
-01EE 7538FF          265                     MOV 38H,#0FFH
-01F1 7539FD          266                     MOV 39H,#LDD6
-01F4 1203E0          267                     LCALL DISPLAY_NUMBER 
-01F7 0201BA          268                     LJMP INT_EX1_EXIT
-                     269     
-01FA                 270     KEY2:   ;È·ÈÏ¼ü£¬OK¼ü
-01FA EC              271                     MOV A,R4
-01FB F9              272                     MOV R1,A
-01FC B90003          273                     CJNE R1,#0,KEY2_R01
-01FF 0201BA          274                     LJMP INT_EX1_EXIT
-0202 D903            275     KEY2_R01:               DJNZ R1,KEY2_R02
-0204 020211          276                                     LJMP KEY2_R1
-0207 D903            277     KEY2_R02:               DJNZ R1,KEY2_R03
-0209 02021E          278                                     LJMP KEY2_R2
-020C D9AC            279     KEY2_R03:               DJNZ R1,INT_EX1_EXIT
-020E 02022B          280                                     LJMP KEY2_R3
-0211                 281     KEY2_R1:
-0211 0C              282                     INC R4
-0212 853B38          283                     MOV 38H,3BH
-0215 7539FD          284                     MOV 39H,#LDD6
-0218 1203E0          285                     LCALL DISPLAY_NUMBER
-021B 0201BA          286                     LJMP INT_EX1_EXIT
-021E                 287     KEY2_R2:
-021E 0C              288                     INC R4
-021F 853C38          289                     MOV 38H,3CH
-0222 7539FD          290                     MOV 39H,#LDD6
-0225 1203E0          291                     LCALL DISPLAY_NUMBER
-0228 0201BA          292                     LJMP INT_EX1_EXIT
-022B                 293     KEY2_R3:
-022B 7C01            294                     MOV R4,#1
-022D 853A38          295                     MOV 38H,3AH
-0230 120363          296                     LCALL HEX2BCD
-0233 7539FD          297                     MOV 39H,#LDD6
-0236 1203E0          298                     LCALL DISPLAY_NUMBER
-0239 E53A            299                     MOV A,3AH
-023B 23              300                     RL A
-023C 2450            301                     ADD A,#50H
-023E C9              302                     XCH A,R1
-023F A73B            303                     MOV @R1,3BH
-0241 09              304                     INC R1
-0242 A73C            305                     MOV @R1,3CH
-0244 753B00          306                     MOV 3BH,#00H
-0247 753C00          307                     MOV 3CH,#00H
-024A 0201BA          308                     LJMP INT_EX1_EXIT
-                     309     
-024D B27F            310     KEY3:   CPL 7FH                                         ;Ñ¡Î»Ê
-024F 0201BA          311                     LJMP INT_EX1_EXIT
-                     312     
-0252                 313     KEY4:                            ;¼ÓÒ»
-0252 EC              314                     MOV A,R4                
-0253 F9              315                     MOV R1,A
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     6
-
-0254 B90003          316                     CJNE R1,#0,KEY4_R01
-0257 0201BA          317                     LJMP INT_EX1_EXIT
-025A D919            318     KEY4_R01:               DJNZ R1,KEY4_R02
-025C 053A            319                                     INC 3AH
-025E E53A            320                                     MOV A,3AH
-0260 B41803          321                                     CJNE A,#24,KEY4_R01_next
-0263 753A00          322                                     MOV 3AH,#0
-0266 853A38          323     KEY4_R01_next:  MOV 38H,3AH
-0269 120363          324                                     LCALL HEX2BCD
-026C 7539FD          325                                     MOV 39H,#LDD6
-026F 1203E0          326                                     LCALL DISPLAY_NUMBER
-0272 0201BA          327                                     LJMP INT_EX1_EXIT
-0275 D915            328     KEY4_R02:               DJNZ R1,KEY4_R03
-0277 853B3D          329                                     MOV 3DH,3BH
-027A 1202F4          330                                     LCALL BCDINC
-027D 853D3B          331                                     MOV 3BH,3DH
-0280 853B38          332                                     MOV 38H,3BH
-0283 7539FD          333                                     MOV 39H,#LDD6
-0286 1203E0          334                                     LCALL DISPLAY_NUMBER
-0289 0201BA          335                                     LJMP INT_EX1_EXIT
-028C D912            336     KEY4_R03:               DJNZ R1,KEY4_EXIT
-028E 853C3D          337                                     MOV 3DH,3CH
-0291 1202F4          338                                     LCALL BCDINC
-0294 853D3C          339                                     MOV 3CH,3DH
-0297 853C38          340                                     MOV 38H,3CH
-029A 7539FD          341                                     MOV 39H,#LDD6
-029D 1203E0          342                                     LCALL DISPLAY_NUMBER
-02A0 0201BA          343     KEY4_EXIT:              LJMP INT_EX1_EXIT                                               
-                     344     
-02A3 EC              345     KEY5:                   MOV A,R4                ;¼õÒ»
-02A4 F9              346                                     MOV R1,A
-02A5 B90003          347                                     CJNE R1,#0,KEY5_R01
-02A8 0201BA          348                                     LJMP INT_EX1_EXIT
-02AB D919            349     KEY5_R01:               DJNZ R1,KEY5_R02
-02AD E53A            350                                     MOV A,3AH
-02AF B40003          351                                     CJNE A,#0,KEY5_R01_next
-02B2 753A18          352                                     MOV 3AH,#24
-02B5 153A            353     KEY5_R01_next:  DEC 3AH
-02B7 853A38          354                                     MOV 38H,3AH
-02BA 120363          355                                     LCALL HEX2BCD
-02BD 7539FD          356                                     MOV 39H,#LDD6
-02C0 1203E0          357                                     LCALL DISPLAY_NUMBER
-02C3 0201BA          358                                     LJMP INT_EX1_EXIT
-02C6 D915            359     KEY5_R02:               DJNZ R1,KEY5_R03
-02C8 853B3D          360                                     MOV 3DH,3BH
-02CB 12031F          361                                     LCALL BCDDEC
-02CE 853D3B          362                                     MOV 3BH,3DH
-02D1 853B38          363                                     MOV 38H,3BH
-02D4 7539FD          364                                     MOV 39H,#LDD6
-02D7 1203E0          365                                     LCALL DISPLAY_NUMBER
-02DA 0201BA          366                                     LJMP INT_EX1_EXIT
-02DD D912            367     KEY5_R03:               DJNZ R1,KEY5_EXIT
-02DF 853C3D          368                                     MOV 3DH,3CH
-02E2 12031F          369                                     LCALL BCDDEC
-02E5 853D3C          370                                     MOV 3CH,3DH
-02E8 853C38          371                                     MOV 38H,3CH
-02EB 7539FD          372                                     MOV 39H,#LDD6
-02EE 1203E0          373                                     LCALL DISPLAY_NUMBER
-02F1 0201BA          374     KEY5_EXIT:              LJMP INT_EX1_EXIT
-                     375     
-02F4 C0E0            376     BCDINC: PUSH ACC
-02F6 E53D            377                     MOV A,3DH
-02F8 207F10          378                     JB 7FH,BCDINC_HIGH
-02FB 540F            379                     ANL A,#0FH
-02FD B40906          380                     CJNE A,#09H,BCDINC_LOW1
-0300 533DF0          381                     ANL 3DH,#0F0H
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     7
-
-0303 02031C          382                     LJMP BCDINC_EXIT
-0306                 383     BCDINC_LOW1:
-0306 053D            384                     INC 3DH
-0308 02031C          385                     LJMP BCDINC_EXIT
-030B                 386     BCDINC_HIGH:
-030B 54F0            387                     ANL A,#0F0H
-030D B49006          388                     CJNE A,#90H,BCDINC_HIGH1
-0310 533D0F          389                     ANL 3DH,#0FH
-0313 02031C          390                     LJMP BCDINC_EXIT
-0316                 391     BCDINC_HIGH1:
-0316 E53D            392                     MOV A,3DH
-0318 2410            393                     ADD A,#10H
-031A F53D            394                     MOV 3DH,A
-031C                 395     BCDINC_EXIT:            
-031C D0E0            396                     POP ACC
-031E 22              397                     RET
-                     398                     
-031F C0E0            399     BCDDEC: PUSH ACC
-0321 E53D            400                     MOV A,3DH
-0323 207F10          401                     JB 7FH,BCDDEC_HIGH
-0326 540F            402                     ANL A,#0FH
-0328 B40006          403                     CJNE A,#00H,BCDDEC_LOW1
-032B 433D09          404                     ORL 3DH,#09H
-032E 020347          405                     LJMP BCDDEC_EXIT
-0331                 406     BCDDEC_LOW1:
-0331 153D            407                     DEC 3DH
-0333 020347          408                     LJMP BCDDEC_EXIT
-0336                 409     BCDDEC_HIGH:
-0336 54F0            410                     ANL A,#0F0H
-0338 B40006          411                     CJNE A,#00H,BCDDEC_HIGH1
-033B 433D90          412                     ORL 3DH,#90H
-033E 020347          413                     LJMP BCDDEC_EXIT
-0341                 414     BCDDEC_HIGH1:
-0341 E53D            415                     MOV A,3DH
-0343 9410            416                     SUBB A,#10H
-0345 F53D            417                     MOV 3DH,A
-0347                 418     BCDDEC_EXIT:
-0347 D0E0            419                     POP ACC 
-0349 22              420                     RET
-                     421     
-034A                 422     CLOSEDIG:
-034A C0E0            423                     PUSH ACC
-034C E53E            424                     MOV A,3EH
-034E 207F05          425                     JB 7FH,CLOSEDIG_HIGH
-0351 440F            426                     ORL A,#0FH
-0353 020358          427                     LJMP CLOSEDIG_EXIT
-0356                 428     CLOSEDIG_HIGH:
-0356 44F0            429                     ORL A,#0F0H
-0358                 430     CLOSEDIG_EXIT:          
-0358 F538            431                     MOV 38H,A
-035A 7539FD          432                     MOV 39H,#LDD6
-035D 1203E0          433                     LCALL DISPLAY_NUMBER
-0360 D0E0            434                     POP ACC
-0362 22              435                     RET
-                     436     ;-------------END OF °´¼üÖÐ¶Ï´¦Àí³ÌÐò----------------
-                     437     
-0363                 438     HEX2BCD:                          ;½«38HÖÐµÄ16½øÖÆÊ×ªÎªBCDÂë
-0363 C0E0            439                     PUSH ACC
-0365 E538            440                     MOV A,38H
-0367 75F00A          441                     MOV B,#10
-036A 84              442                     DIV AB
-036B C4              443                     SWAP A
-036C 45F0            444                     ORL A,B
-036E F538            445                     MOV 38H,A
-0370 D0E0            446                     POP ACC
-0372 22              447                     RET
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     8
-
-                     448     
-0373                 449     GET_LIGHT_TIME:                                                 ;»ñÈ¡µ±Ç°ºìÂÌµÆÊ±¼ä×Ó³ÌÐò£¬
-                             ´æÈë30hºÍ31h
-0373 C083            450                     PUSH DPH
-0375 C082            451                     PUSH DPL
-0377 C0E0            452                     PUSH ACC
-0379 C0D0            453                     PUSH PSW
-037B D2D3            454                     SETB RS0                         
-037D 90046D          455                     MOV DPTR,#TAB_LIGHT_TIME ;¶ÁÈëÐÅºÅµÆÑÓÊ±ÐÅÏ¢,30HÎªÂÌµÆ£¬31HÎªºìµÆ
-0380 E537            456                     MOV A,37H
-0382 23              457                     RL A
-0383 93              458                     MOVC A,@A+DPTR
-0384 F530            459                     MOV 30H,A
-0386 E537            460                     MOV A,37H
-0388 23              461                     RL A
-0389 04              462                     INC A
-038A 93              463                     MOVC A,@A+DPTR
-038B F531            464                     MOV 31H,A       
-                     465                     ;¼ì²éÊÇ·ñÓÐÓÃ»§×Ô¶¨ÒåÊ¾Ý
-038D E537            466                     MOV A,37H
-038F 23              467                     RL A
-0390 2450            468                     ADD A,#50H
-0392 F8              469                     MOV R0,A
-0393 04              470                     INC A
-0394 F9              471                     MOV R1,A
-0395 E6              472                     MOV A,@R0  
-0396 47              473                     ORL A,@R1
-0397 602E            474                     JZ GET_LIGHT_TIME_EXIT ;ÈôÈ«ÎªÁã£¬ËµÃ÷ÎÞÓÃ»§¶¨ÒåÊ¾Ý£¬Ö±½ÓÌø³ö
-0399 B60002          475                     CJNE @R0,#00H,GET_LIGHT_TIME_NEXT1
-039C 61A0            476                     AJMP GET_LIGHT_TIME_NEXT2
-039E                 477     GET_LIGHT_TIME_NEXT1:
-039E 8630            478                     MOV 30H,@R0
-03A0                 479     GET_LIGHT_TIME_NEXT2:
-03A0 B70002          480                     CJNE @R1,#00H,GET_LIGHT_TIME_NEXT3
-03A3 61A7            481                     AJMP GET_LIGHT_TIME_FILL1
-03A5                 482     GET_LIGHT_TIME_NEXT3:
-03A5 8731            483                     MOV 31H,@R1
-03A7                 484     GET_LIGHT_TIME_FILL1:
-03A7 E6              485                     MOV A,@R0 ;¼ì²éÓÃ»§¶¨ÒåÊ¾ÝÊÇ·ñÍêÕû£¬²»ÍêÕûÔòÒÔÄ¬ÈÏÊ¾Ý²¹³ä(Ä¬ÈÏÎª£¬ºìµÆ±ÈÂÌµ
-                             Æ³¤3Ãë) 
-03A8 57              486                     ANL A,@R1
-03A9 701C            487                     JNZ GET_LIGHT_TIME_EXIT ;ÈôÓÐÒ»¸öÎªÁã£¬Ôò¸ü¸ÄÆäÎªÄ¬ÈÏÖµ
-03AB B6000E          488                     CJNE @R0,#00H,GET_LIGHT_TIME_FILL2
-03AE 8736            489                     MOV 36H,@R1
-03B0 120421          490                     LCALL SUBBCD
-03B3 120421          491                     LCALL SUBBCD
-03B6 120421          492                     LCALL SUBBCD
-03B9 853630          493                     MOV 30H,36H
-03BC                 494     GET_LIGHT_TIME_FILL2:
-03BC B70008          495                     CJNE @R1,#00H,GET_LIGHT_TIME_EXIT
-03BF E6              496                     MOV A,@R0
-03C0 C2D7            497                     CLR CY
-03C2 2403            498                     ADD A,#3
-03C4 D4              499                     DA A
-03C5 F531            500                     MOV 31H,A
-03C7                 501     GET_LIGHT_TIME_EXIT:
-03C7 C2D3            502                     CLR RS0
-03C9 D0D0            503                     POP PSW
-03CB D0E0            504                     POP ACC
-03CD D082            505                     POP DPL
-03CF D083            506                     POP DPH
-03D1 22              507                     RET
-                     508     ;--------------------
-03D2                 509     CHANGE_LIGHT:                           ;¿ªÐÅºÅµÆ×Ó³ÌÐò
-03D2 C083            510                     PUSH DPH
-03D4 C0E0            511                     PUSH ACC
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE     9
-
-03D6 7583FE          512                     MOV DPH,#LED
-03D9 E6              513                     MOV A,@R0
-03DA F0              514                     MOVX @DPTR,A
-03DB D0E0            515                     POP ACC
-03DD D083            516                     POP DPH
-03DF 22              517                     RET
-                     518     ;-------------------------
-03E0                 519     DISPLAY_NUMBER:                         ;ÏÔÊ¾µ¹¼ÆÊ±Ê×Ö×Ó³ÌÐò£¬ÏÔÊ¾38HÖÐµÄÊ×Öµ½39HÖ¸¶¨µÄµØÖ·
-                             ÖÐ ÏÈÏÔÊ¾µÍÎ»£¬ÔÙÏÔÊ¾¸ßÎ»
-03E0 C0E0            520                     PUSH ACC
-03E2 E538            521                     MOV A,38H
-03E4 53380F          522                     ANL 38H,#0FH
-03E7 120404          523                     LCALL GETDIGIT
-03EA 853983          524                     MOV DPH,39H
-03ED 120419          525                     LCALL DISDIGIT
-03F0 C4              526                     SWAP A
-03F1 F538            527                     MOV 38H,A
-03F3 53380F          528                     ANL 38H,#0FH
-03F6 120404          529                     LCALL GETDIGIT
-03F9 1539            530                     DEC 39H
-03FB 853983          531                     MOV DPH,39H
-03FE 120419          532                     LCALL DISDIGIT
-0401 D0E0            533                     POP ACC
-0403 22              534                     RET
-                     535     ;-----------------------------
-0404                 536     GETDIGIT:                                       ;È¡¶ÎÂë×Ó³ÌÐò
-0404 C083            537                     PUSH DPH
-0406 C082            538                     PUSH DPL
-0408 C0E0            539                     PUSH ACC
-040A 90045D          540                     MOV DPTR,#DIGIT
-040D E538            541                     MOV A,38H
-040F 93              542                     MOVC A,@A+DPTR
-0410 C538            543                     XCH A,38H
-0412 D0E0            544                     POP ACC
-0414 D082            545                     POP DPL
-0416 D083            546                     POP DPH
-0418 22              547                     RET
-                     548     ;--------------------------------                               
-0419                 549     DISDIGIT:                                       ;ËÍÊÂë¹ÜÏÔÊ¾×Ó³ÌÐò
-0419 C0E0            550                     PUSH ACC
-041B E538            551                     MOV     A,38H
-041D F0              552                     MOVX @DPTR,A
-041E D0E0            553                     POP ACC 
-0420 22              554                     RET
-                     555     ;------------------------------
-0421                 556     SUBBCD:                                         ;BCDÂë¼õÒ»,¶Ô36HÖÐµÄÊ×öBCDÂë¼õ1
-0421 C0E0            557                     PUSH ACC
-0423 C0D0            558                     PUSH PSW
-0425 1536            559                     DEC 36H
-0427 E536            560                     MOV A,36H
-0429 540F            561                     ANL A,#0FH
-042B B40F08          562                     CJNE A,#0FH,SUBBCD_EXIT
-042E C2D7            563                     CLR CY
-0430 E536            564                     MOV A,36H
-0432 9406            565                     SUBB A,#06
-0434 F536            566                     MOV 36H,A
-0436                 567     SUBBCD_EXIT:
-0436 D0D0            568                     POP PSW
-0438 D0E0            569                     POP ACC
-043A 22              570                     RET
-                     571     
-043B                 572     DELAY10:
-043B 00              573                     NOP
-043C 754009          574                     MOV 40H,#9
-043F 7541FF          575     DL10_1: MOV 41H,#255
-0442 00              576     DL10_2: NOP
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE    10
-
-0443 00              577                     NOP
-0444 D541FB          578                     DJNZ 41H,DL10_2
-0447 D540F5          579                     DJNZ 40H,DL10_1
-044A 00              580                     NOP
-044B 22              581                     RET
-                     582     
-044C                 583     DELAY4ms5:
-044C 754004          584                     MOV 40H,#4
-044F 7541D2          585     DL45_1: MOV 41H,#210
-0452 00              586     DL45_2: NOP
-0453 00              587                     NOP
-0454 00              588                     NOP
-0455 D541FA          589                     DJNZ 41H,DL45_2
-0458 D540F4          590                     DJNZ 40H,DL45_1
-045B 00              591                     NOP
-045C 22              592                     RET
-                     593     ;;------------TABLES----------------                                     
-045D                 594     DIGIT:                                                  ;LEDÊÂë¹Ü¶ÎÂë±í
-045D 3F065B4F        595                     DB 3FH,06H,5BH,4FH,66H
-0461 66                      
-0462 6D7D077F        596                     DB 6DH,7DH,07H,7FH,6FH
-0466 6F                      
-0467 777C395E        597                     DB 77H,7CH,39H,5EH,79H,00H
-046B 7900                    
-046D                 598     TAB_LIGHT_TIME:                                 ;Ô¤ÉèµÄÐÅºÅµÆÊ±¼ä³£Ê£¬¹²24ÐÐ£¬48¸öÖµ
-046D 0205            599                     DB 02H, 05H
-046F 1114            600                     DB 11H, 14H
-0471 0306            601                     DB 03H, 06H
-0473 0407            602                     DB 04H, 07H
-0475 0508            603                     DB 05H, 08H
-0477 0609            604                     DB 06H, 09H
-0479 0110            605                     DB 01H, 10H
-047B 0211            606                     DB 02H, 11H
-047D 0305            607                     DB 03H, 05H
-047F 0406            608                     DB 04H, 06H
-0481 0507            609                     DB 05H, 07H
-0483 0608            610                     DB 06H, 08H
-0485 0103            611                     DB 01H, 03H
-0487 0204            612                     DB 02H, 04H
-0489 0305            613                     DB 03H, 05H
-048B 0406            614                     DB 04H, 06H
-048D 0507            615                     DB 05H, 07H
-048F 0608            616                     DB 06H, 08H
-0491 0103            617                     DB 01H, 03H
-0493 0204            618                     DB 02H, 04H
-0495 0305            619                     DB 03H, 05H
-0497 0406            620                     DB 04H, 06H
-0499 0507            621                     DB 05H, 07H
-049B 2426            622                     DB 24H, 26H
-                     623     ;----------- END --------------------
-                     624     END
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE    11
-
-SYMBOL TABLE LISTING
------- ----- -------
 
 
-N A M E               T Y P E  V A L U E   ATTRIBUTES
 
-ACC. . . . . . . . .  D ADDR   00E0H   A   
-B. . . . . . . . . .  D ADDR   00F0H   A   
-BCDDEC . . . . . . .  C ADDR   031FH   A   
-BCDDEC_EXIT. . . . .  C ADDR   0347H   A   
-BCDDEC_HIGH. . . . .  C ADDR   0336H   A   
-BCDDEC_HIGH1 . . . .  C ADDR   0341H   A   
-BCDDEC_LOW1. . . . .  C ADDR   0331H   A   
-BCDINC . . . . . . .  C ADDR   02F4H   A   
-BCDINC_EXIT. . . . .  C ADDR   031CH   A   
-BCDINC_HIGH. . . . .  C ADDR   030BH   A   
-BCDINC_HIGH1 . . . .  C ADDR   0316H   A   
-BCDINC_LOW1. . . . .  C ADDR   0306H   A   
-CHANGE_LIGHT . . . .  C ADDR   03D2H   A   
-CLOSEDIG . . . . . .  C ADDR   034AH   A   
-CLOSEDIG_EXIT. . . .  C ADDR   0358H   A   
-CLOSEDIG_HIGH. . . .  C ADDR   0356H   A   
-CY . . . . . . . . .  B ADDR   00D0H.7 A   
-DELAY10. . . . . . .  C ADDR   043BH   A   
-DELAY4MS5. . . . . .  C ADDR   044CH   A   
-DIGIT. . . . . . . .  C ADDR   045DH   A   
-DISDIGIT . . . . . .  C ADDR   0419H   A   
-DISPLAY_NUMBER . . .  C ADDR   03E0H   A   
-DL10_1 . . . . . . .  C ADDR   043FH   A   
-DL10_2 . . . . . . .  C ADDR   0442H   A   
-DL45_1 . . . . . . .  C ADDR   044FH   A   
-DL45_2 . . . . . . .  C ADDR   0452H   A   
-DPH. . . . . . . . .  D ADDR   0083H   A   
-DPL. . . . . . . . .  D ADDR   0082H   A   
-EA . . . . . . . . .  B ADDR   00A8H.7 A   
-ET0. . . . . . . . .  B ADDR   00A8H.1 A   
-ET1. . . . . . . . .  B ADDR   00A8H.3 A   
-EX0. . . . . . . . .  B ADDR   00A8H.0 A   
-EX1. . . . . . . . .  B ADDR   00A8H.2 A   
-GETDIGIT . . . . . .  C ADDR   0404H   A   
-GET_LIGHT_TIME . . .  C ADDR   0373H   A   
-GET_LIGHT_TIME_EXIT.  C ADDR   03C7H   A   
-GET_LIGHT_TIME_FILL1  C ADDR   03A7H   A   
-GET_LIGHT_TIME_FILL2  C ADDR   03BCH   A   
-GET_LIGHT_TIME_NEXT1  C ADDR   039EH   A   
-GET_LIGHT_TIME_NEXT2  C ADDR   03A0H   A   
-GET_LIGHT_TIME_NEXT3  C ADDR   03A5H   A   
-G_R1 . . . . . . . .  N NUMB   000CH   A   
-HEX2BCD. . . . . . .  C ADDR   0363H   A   
-INT_C1 . . . . . . .  C ADDR   009AH   A   
-INT_C1_BLINK . . . .  C ADDR   00A1H   A   
-INT_C1_BLINK_EXIT. .  C ADDR   00BCH   A   
-INT_C1_BLINK_RED . .  C ADDR   00B6H   A   
-INT_C1_EXIT. . . . .  C ADDR   011FH   A   
-INT_C1_EXIT0 . . . .  C ADDR   0141H   A   
-INT_C1_EXIT1 . . . .  C ADDR   0144H   A   
-INT_C1_NEXT0 . . . .  C ADDR   0100H   A   
-INT_C1_NEXT1 . . . .  C ADDR   010CH   A   
-INT_C1_NEXT2 . . . .  C ADDR   0116H   A   
-INT_C1_NORMAL. . . .  C ADDR   00BFH   A   
-INT_C1_NORMAL1 . . .  C ADDR   00E0H   A   
-INT_C1_UNBLINK_RED .  C ADDR   00D7H   A   
-INT_EX0. . . . . . .  C ADDR   0147H   A   
-INT_EX0_EXIT . . . .  C ADDR   0177H   A   
-INT_EX0_EXIT0. . . .  C ADDR   0179H   A   
-INT_EX0_EXIT1. . . .  C ADDR   017FH   A   
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE    12
-
-INT_EX0_NEXT1. . . .  C ADDR   0151H   A   
-INT_EX0_NEXT2. . . .  C ADDR   0157H   A   
-INT_EX0_NEXT3. . . .  C ADDR   015DH   A   
-INT_EX0_SHOOT1 . . .  C ADDR   0160H   A   
-INT_EX0_SHOOT11. . .  C ADDR   0165H   A   
-INT_EX0_SHOOT2 . . .  C ADDR   016DH   A   
-INT_EX0_SHOOT22. . .  C ADDR   0172H   A   
-INT_EX1. . . . . . .  C ADDR   0185H   A   
-INT_EX1_EXIT . . . .  C ADDR   01BAH   A   
-INT_EX1_EXIT_1 . . .  C ADDR   01C7H   A   
-INT_TO . . . . . . .  C ADDR   0091H   A   
-IP . . . . . . . . .  D ADDR   00B8H   A   
-IT0. . . . . . . . .  B ADDR   0088H.0 A   
-IT1. . . . . . . . .  B ADDR   0088H.2 A   
-KEY01. . . . . . . .  C ADDR   01ABH   A   
-KEY02. . . . . . . .  C ADDR   01AEH   A   
-KEY03. . . . . . . .  C ADDR   01B1H   A   
-KEY04. . . . . . . .  C ADDR   01B4H   A   
-KEY05. . . . . . . .  C ADDR   01B7H   A   
-KEY1 . . . . . . . .  C ADDR   01CCH   A   
-KEY1_NEXT1 . . . . .  C ADDR   01E3H   A   
-KEY2 . . . . . . . .  C ADDR   01FAH   A   
-KEY2_R01 . . . . . .  C ADDR   0202H   A   
-KEY2_R02 . . . . . .  C ADDR   0207H   A   
-KEY2_R03 . . . . . .  C ADDR   020CH   A   
-KEY2_R1. . . . . . .  C ADDR   0211H   A   
-KEY2_R2. . . . . . .  C ADDR   021EH   A   
-KEY2_R3. . . . . . .  C ADDR   022BH   A   
-KEY3 . . . . . . . .  C ADDR   024DH   A   
-KEY4 . . . . . . . .  C ADDR   0252H   A   
-KEY4_EXIT. . . . . .  C ADDR   02A0H   A   
-KEY4_R01 . . . . . .  C ADDR   025AH   A   
-KEY4_R01_NEXT. . . .  C ADDR   0266H   A   
-KEY4_R02 . . . . . .  C ADDR   0275H   A   
-KEY4_R03 . . . . . .  C ADDR   028CH   A   
-KEY5 . . . . . . . .  C ADDR   02A3H   A   
-KEY5_EXIT. . . . . .  C ADDR   02F1H   A   
-KEY5_R01 . . . . . .  C ADDR   02ABH   A   
-KEY5_R01_NEXT. . . .  C ADDR   02B5H   A   
-KEY5_R02 . . . . . .  C ADDR   02C6H   A   
-KEY5_R03 . . . . . .  C ADDR   02DDH   A   
-LDD1 . . . . . . . .  N NUMB   00F8H   A   
-LDD2 . . . . . . . .  N NUMB   00F9H   A   
-LDD3 . . . . . . . .  N NUMB   00FAH   A   
-LDD4 . . . . . . . .  N NUMB   00FBH   A   
-LDD5 . . . . . . . .  N NUMB   00FCH   A   
-LDD6 . . . . . . . .  N NUMB   00FDH   A   
-LED. . . . . . . . .  N NUMB   00FEH   A   
-MAIN . . . . . . . .  C ADDR   0030H   A   
-MINS_PER_HOUR. . . .  N NUMB   0006H   A   
-P1 . . . . . . . . .  D ADDR   0090H   A   
-P2 . . . . . . . . .  D ADDR   00A0H   A   
-P3 . . . . . . . . .  D ADDR   00B0H   A   
-PSW. . . . . . . . .  D ADDR   00D0H   A   
-RS0. . . . . . . . .  B ADDR   00D0H.3 A   
-R_G3 . . . . . . . .  N NUMB   0021H   A   
-R_Y4 . . . . . . . .  N NUMB   0011H   A   
-SECS_PER_MIN . . . .  N NUMB   0005H   A   
-SP . . . . . . . . .  D ADDR   0081H   A   
-SUBBCD . . . . . . .  C ADDR   0421H   A   
-SUBBCD_EXIT. . . . .  C ADDR   0436H   A   
-TAB_LIGHT_TIME . . .  C ADDR   046DH   A   
-TH0. . . . . . . . .  D ADDR   008CH   A   
-TH1. . . . . . . . .  D ADDR   008DH   A   
-TL0. . . . . . . . .  D ADDR   008AH   A   
-TL1. . . . . . . . .  D ADDR   008BH   A   
-A51 MACRO ASSEMBLER  TRAFLIGHT                                                            06/13/2011 23:04:15 PAGE    13
-
-TMOD . . . . . . . .  D ADDR   0089H   A   
-TR0. . . . . . . . .  B ADDR   0088H.4 A   
-TR1. . . . . . . . .  B ADDR   0088H.6 A   
-Y_R2 . . . . . . . .  N NUMB   000AH   A   
+       MCS-51 Family Macro Assembler   A S E M - 5 1   V 1.3
+       =====================================================
 
 
-REGISTER BANK(S) USED: 0 
+
+	Source File:	..\..\..\..\TrafficLight\traflight.asm
+	Object File:	..\..\..\..\TrafficLight\traflight.hex
+	List File:	..\..\..\..\TrafficLight\traflight.lst
 
 
-ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+
+ Line  I  Addr  Code            Source
+
+    1:				;;------------------------
+    2:				;;TrafLight v1.5
+    3:				;;by SN icetiny@gmail.com
+    4:				;;2011-6-10
+    5:				;;Íê³É¼üÅÌ»ù±¾¹¦ÄÜ
+    6:				;;------------------------
+    7:				;;R0	 R1			  R2			  R3 			R6		  R7
+					  R5			 R4
+    8:				;;µÆ×´Ì¬ ÁÙÊ±Ê¹ÓÃ 2ºìµÆµ¹¼ÆÊ±	  1ÂÌµÆµ¹¼ÆÊ±    Ãë×´Ì¬ÊýÂë	 ·Ö×´Ì¬	  ¿Õ	 ÆÁ×´Ì¬£¨0¿ª1Ñ¡¶Î2µ÷
+				Â·¿ÚAÊ±¼ä3µ÷Â·¿ÚBÊ±¼ä£©
+    9:				;;------------------------
+   10:				;;30H   31H      32H-35H	   36H            37H			38H		 39H
+							 3AH         3BH     3CH			Î»7F	   3DH
+										3EH
+   11:				;;ºìµÆA ºìµÆB	µÆ×´Ì¬µØÖ· ¼õÒ»ÓÃ  µ±Ç°Ð¡Ê±×´Ì¬Âë  LEDÏÔÊ¾¼Ä´æÆ÷ ÊýÂë¹ÜµØÖ·¸ß°ËÎ»	 ÆÁ¶Î(HEXÂë)
+				 ÆÁÂÌµÆ ÆÁºìµÆ£¨BCDÂë£©	Ñ¡Î»±êÖ¾   BCDINCºÍBCDDEC×Ó³ÌÐòµÄ²Ù×÷Î»	   ÉÁË¸¹ØµÆ³ÌÐòÊý¾Ý´«µÝÎ»
+   12:				;;------------------------
+   13:				;;50H-7FH			  40H 41H				  Î»7E
+   14:				;;ÓÃ»§¶¨ÒåµÆ×´Ì¬	  delay10ÖÐÓÃµ½µÄ±äÁ¿  Çø·ÖÒ»ÃëÖÐµÄÉÏÏÂ°ëÃë
+   15:				;;------------------------
+   16:				;;¼üÅÌ
+   17:				;; 1        2       3          4  5
+   18:				;;on/off   ok/next	<>Ñ¡Î»	   +  -
+   19:				;;------------------------
+   20:
+   21:		N      0000			ORG 0000H
+   22:	  0000	01 30				AJMP MAIN
+   23:				;----------------INTERRUPT VECTORS--------------------------
+   24:		N      0003			ORG 0003H ;Íâ²¿ÖÐ¶Ï0
+   25:	  0003	02 01 8F			LJMP INT_EX0
+   26:		N      000B			ORG 000BH
+   27:	  000B	02 00 9E			LJMP INT_TO
+   28:		N      0013			ORG 0013H ;Íâ²¿ÖÐ¶Ï1
+   29:	  0013	02 01 CD			LJMP INT_EX1
+   30:		N      001B			ORG 001BH
+   31:	  001B	02 00 AD			LJMP INT_C1
+   32:				;------------DEFINE CONSTANT VALUE--------------------------
+   33:		N      00F8			LDD1 EQU 0f8H ;ÊýÂë¹ÜµØÖ·
+   34:		N      00F9			LDD2 EQU 0f9H
+   35:		N      00FA			LDD3 EQU 0faH
+   36:		N      00FB			LDD4 EQU 0fbH
+   37:		N      00FC			LDD5 EQU 0fcH
+   38:		N      00FD			LDD6 EQU 0fdH
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 2
+
+
+
+ Line  I  Addr  Code            Source
+
+   39:		N      00FE			LED  EQU 0feH ;µÆµØÖ·
+   40:		N      000C			G_R1 EQU 1100B
+   41:		N      000A			Y_R2 EQU 1010B
+   42:		N      0021			R_G3 EQU 100001B
+   43:		N      0011			R_Y4 EQU 10001B
+   44:		N      0004			SECS_PER_MIN EQU 4  ;Ã¿·ÖÖÐµÄÃëÊý£¬µ÷ÊÔÓÃ
+   45:		N      0005			MINS_PER_HOUR EQU 5 ;Ã¿Ð¡Ê±ÖÐµÄ·ÖÊý£¬µ÷ÊÔÓÃ
+
+
+   46:				;-----------------------------------------------------------
+   47:				;;--------------MAIN PROGRAM BEGIN---------------------------
+   48:		N      0030			ORG 0030H
+   49:	  0030			MAIN:
+   50:	  0030	75 81 10			MOV SP,#10H
+   51:	  0033	75 90 0F			MOV P1,#0FH
+   52:	  0036	75 32 0C			MOV 32H,#G_R1
+   53:	  0039	75 33 0A			MOV 33H,#Y_R2
+   54:	  003C	75 34 21			MOV 34H,#R_G3
+   55:	  003F	75 35 11			MOV 35H,#R_Y4
+   56:	  0042	75 89 61			MOV TMOD,#61H	;³õÊ¼»¯¼ÆÊ±Æ÷ ¶¨Ê±Æ÷0·½Ê½1 ¼ÆÊýÆ÷1·½Ê½2
+   57:	  0045	75 8C E7			MOV TH0,#0E7H
+   58:	  0048	75 8A 00			MOV TL0,#00H	;2^16-6400 = 59136 = E700, 12*2*72*6400=11.0592MHz£¬È¡µÃ½ÏÐ¡ÊÇÎªÁËÕÕ
+				¹ËWDT¿´ÃÅ¹·
+   59:	  004B	75 8D DC			MOV TH1,#0DCH
+   60:	  004E	75 8B DC			MOV TL1,#0DCH	;36. 0.5S ;
+   61:	  0051	7E 04				MOV R6,#SECS_PER_MIN ;Ã¿·ÖÖÐµÄÃëÊý£¬µ÷ÊÔÓÃ
+   62:	  0053	7F 05				MOV R7,#MINS_PER_HOUR ;Ã¿Ð¡Ê±ÖÐµÄ·ÖÊý£¬µ÷ÊÔÓÃ
+   63:	  0055	75 37 08			MOV 37H,#8		;³õÊ¼»¯µ±Ç°Ê±¼ä£¨Ð¡Ê±×´Ì¬£©
+   64:						;MOV 7EH,#03H	;²âÊÔRAMÖÐºìÂÌµÆÊ±¼ä±íÓÃ
+   65:						;MOV 7FH,#00H
+   66:	  0058	12 03 E0			LCALL GET_LIGHT_TIME ;»ñÈ¡µ¹¼ÆÊ±Ê±¼ä´æÈë 30H,31H
+   67:	  005B	78 32				MOV R0,#32H	;R0¼ÇÂ¼ÐÅºÅµÆ¼Ä´æÆ÷×´Ì¬
+   68:	  005D	AA 30				MOV R2,30H
+   69:	  005F	AB 30				MOV R3,30H
+   70:	  0061	8B 36				MOV 36H,R3
+   71:	  0063	12 04 72			LCALL SUBBCD
+   72:	  0066	12 04 72			LCALL SUBBCD
+   73:	  0069	12 04 72			LCALL SUBBCD
+   74:	  006C	AB 36				MOV R3,36H
+   75:	  006E	12 04 23			LCALL CHANGE_LIGHT	;¿ªÐÅºÅµÆ
+   76:	  0071	8B 38				MOV 38H,R3	   ;ËÍÏÔÊ¾£¬¿ªÊýÂë¹Ü
+   77:	  0073	75 39 F9			MOV 39H,#LDD2
+   78:	  0076	12 04 31			LCALL DISPLAY_NUMBER
+   79:	  0079	8A 38				MOV 38H,R2
+   80:	  007B	75 39 FB			MOV 39H,#LDD4
+   81:	  007E	12 04 31			LCALL DISPLAY_NUMBER
+   82:						;ÖÐ¶ÏÓÅÏÈ¼¶´¦Àí
+   83:	  0081	75 B8 0A			MOV IP,#00001010B	 ;ÓÅÏÈ¼¶ÒÀ´ÎÎª t0 t1 x0 x1
+   84:	  0084	D2 A9				SETB ET0
+   85:	  0086	D2 AB				SETB ET1
+   86:	  0088	D2 A8				SETB EX0
+   87:	  008A	D2 AA				SETB EX1
+   88:	  008C	D2 AF				SETB EA
+   89:	  008E	D2 88				SETB IT0
+   90:	  0090	D2 8A				SETB IT1
+   91:	  0092	D2 8C				SETB TR0
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 3
+
+
+
+ Line  I  Addr  Code            Source
+
+   92:	  0094	D2 8E				SETB TR1
+   93:	  0096	75 A6 1E			MOV 0A6H,#01EH ;¼¤»î¿´ÃÅ¹·
+   94:	  0099	75 A6 E1			MOV 0A6H,#0E1H
+   95:						;³õÊ¼»¯Íê±Ï£¬¿ªÊ¼¼ÆÊ±
+   96:	  009C	80 FE				SJMP $
+   97:				;;-------------- END OF MAIN -----------------
+   98:	  009E			INT_TO:								;¼ÆÊ±Æ÷0ÖÐ¶Ï´¦Àí³ÌÐò
+   99:	  009E	75 8C E7			MOV TH0,#0E7H 				; Ê±¼ä³£ÊýÈÔ´ýÓÅ»¯
+  100:	  00A1	75 8A 00			MOV TL0,#00H
+  101:	  00A4	75 A6 1E			MOV 0A6H,#01EH ;ÇåÁã¿´ÃÅ¹·
+  102:	  00A7	75 A6 E1			MOV 0A6H,#0E1H
+  103:	  00AA	B2 B5				CPL P3.5
+  104:	  00AC	32				RETI
+  105:
+  106:	  00AD			INT_C1:								;¼ÆÊýÆ÷1ÖÐ¶Ï´¦Àí³ÌÐò
+  107:	  00AD	C0 E0				PUSH ACC
+  108:	  00AF	B2 7E				CPL 7EH
+  109:	  00B1	20 7E 1E			JB 7EH,INT_C1_NORMAL
+  110:	  00B4			INT_C1_BLINK:
+  111:	  00B4	EC				MOV A,R4
+  112:	  00B5	60 18				JZ INT_C1_BLINK_EXIT
+  113:	  00B7	EC				MOV A,R4
+  114:	  00B8	C3				CLR C
+  115:	  00B9	94 02				SUBB A,#2
+  116:	  00BB	10 D7 11			JBC CY,INT_C1_BLINK_EXIT
+  117:	  00BE	70 09				JNZ INT_C1_BLINK_RED
+  118:	  00C0	85 3B 3E			MOV 3EH,3BH
+  119:	  00C3	12 03 B7			LCALL CLOSEDIG
+  120:	  00C6	02 01 8C			LJMP INT_C1_EXIT1
+  121:	  00C9			INT_C1_BLINK_RED:
+  122:	  00C9	85 3C 3E			MOV 3EH,3CH
+  123:	  00CC	12 03 B7			LCALL CLOSEDIG
+  124:	  00CF			INT_C1_BLINK_EXIT:
+  125:	  00CF	02 01 8C			LJMP INT_C1_EXIT1
+  126:	  00D2			INT_C1_NORMAL:
+  127:	  00D2	EC				MOV A,R4
+  128:	  00D3	60 1E				JZ INT_C1_NORMAL1
+  129:	  00D5	EC				MOV A,R4
+  130:	  00D6	C3				CLR C
+  131:	  00D7	94 02				SUBB A,#2
+  132:	  00D9	10 D7 17			JBC CY,INT_C1_NORMAL1
+  133:	  00DC	70 0C				JNZ INT_C1_UNBLINK_RED
+  134:	  00DE	85 3B 38			MOV 38H,3BH
+  135:	  00E1	75 39 FD			MOV 39H,#LDD6
+  136:	  00E4	12 04 31			LCALL DISPLAY_NUMBER
+  137:	  00E7	02 00 F3			LJMP INT_C1_NORMAL1
+  138:	  00EA			INT_C1_UNBLINK_RED:
+  139:	  00EA	85 3C 38			MOV 38H,3CH
+  140:	  00ED	75 39 FD			MOV 39H,#LDD6
+  141:	  00F0	12 04 31			LCALL DISPLAY_NUMBER
+  142:	  00F3	8B 36		INT_C1_NORMAL1:		MOV 36H,R3
+  143:	  00F5	12 04 72			LCALL SUBBCD
+  144:	  00F8	AB 36				MOV R3,36H
+  145:	  00FA	8A 36				MOV 36H,R2
+  146:	  00FC	12 04 72			LCALL SUBBCD
+  147:	  00FF	AA 36				MOV R2,36H
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 4
+
+
+
+ Line  I  Addr  Code            Source
+
+  148:	  0101	BA F9 3F			CJNE R2,#0F9H,INT_C1_NEXT2
+  149:	  0104	08				INC R0
+  150:	  0105	B8 36 18			CJNE R0,#36H,INT_C1_NEXT0
+  151:	  0108	78 32				MOV R0,#32H
+  152:	  010A	12 04 23			LCALL CHANGE_LIGHT
+  153:	  010D	AA 30				MOV R2,30H
+  154:	  010F	AB 30				MOV R3,30H	   ;ÂÌµÆÊ±¼ä±ÈºìµÆÊ±¼ä¶Ì3Ãë
+  155:	  0111	8B 36				MOV 36H,R3
+  156:	  0113	12 04 72			LCALL SUBBCD
+  157:	  0116	12 04 72			LCALL SUBBCD
+  158:	  0119	12 04 72			LCALL SUBBCD
+  159:	  011C	AB 36				MOV R3,36H
+  160:	  011E	80 2C				SJMP INT_C1_EXIT
+  161:	  0120			INT_C1_NEXT0:
+  162:	  0120	B8 34 16			CJNE R0,#34H,INT_C1_NEXT1
+  163:	  0123	12 04 23			LCALL CHANGE_LIGHT
+  164:	  0126	AA 31				MOV R2,31H
+  165:	  0128	AB 31				MOV R3,31H	   ;ÂÌµÆÊ±¼ä±ÈºìµÆÊ±¼ä¶Ì3Ãë
+  166:	  012A	8B 36				MOV 36H,R3
+  167:	  012C	12 04 72			LCALL SUBBCD
+  168:	  012F	12 04 72			LCALL SUBBCD
+  169:	  0132	12 04 72			LCALL SUBBCD
+  170:	  0135	AB 36				MOV R3,36H
+  171:	  0137	80 13				SJMP INT_C1_EXIT
+  172:	  0139			INT_C1_NEXT1:
+  173:	  0139	B8 35 07			CJNE R0,#35H,INT_C1_NEXT2
+  174:	  013C	12 04 23			LCALL CHANGE_LIGHT
+  175:	  013F	EB				MOV A,R3
+  176:	  0140	CA				XCH A,R2
+  177:	  0141	80 09				SJMP INT_C1_EXIT
+  178:	  0143			INT_C1_NEXT2:
+  179:	  0143	BB F9 06			CJNE R3,#0F9H,INT_C1_EXIT
+  180:	  0146	08				INC R0
+  181:	  0147	12 04 23			LCALL CHANGE_LIGHT
+  182:	  014A	EA				MOV A,R2
+  183:	  014B	CB				XCH A,R3
+  184:	  014C			INT_C1_EXIT:
+  185:	  014C	E8				MOV A,R0
+  186:	  014D	C2 D7				CLR CY
+  187:	  014F	94 33				SUBB A,#33H
+  188:	  0151	30 D7 13			JNB CY,INT_C1_REVERSEDISPLAY
+  189:	  0154	8B 38				MOV 38H,R3	   ;ËÍÏÔÊ¾
+  190:	  0156	75 39 F9			MOV 39H,#LDD2
+  191:	  0159	12 04 31			LCALL DISPLAY_NUMBER
+  192:	  015C	8A 38				MOV 38H,R2
+  193:	  015E	75 39 FB			MOV 39H,#LDD4
+  194:	  0161	12 04 31			LCALL DISPLAY_NUMBER
+  195:	  0164	02 01 77			LJMP INT_C1_EXIT00
+  196:	  0167			INT_C1_REVERSEDISPLAY:	;µ÷»»ÏÔÊ¾µÄÄÚÈÝ£¨Ô­À´ÏÔÊ¾ºìµÆµ¹¼ÆÊ±£¬ÏÖÔÚÔòÏÔÊ¾ÂÌµÆµ¹¼ÆÊ±£©
+  197:	  0167	8A 38				MOV 38H,R2
+  198:	  0169	75 39 F9			MOV 39H,#LDD2
+  199:	  016C	12 04 31			LCALL DISPLAY_NUMBER
+  200:	  016F	8B 38				MOV 38H,R3
+  201:	  0171	75 39 FB			MOV 39H,#LDD4
+  202:	  0174	12 04 31			LCALL DISPLAY_NUMBER
+  203:	  0177			INT_C1_EXIT00:
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 5
+
+
+
+ Line  I  Addr  Code            Source
+
+  204:	  0177	DE 13				DJNZ R6,INT_C1_EXIT1
+  205:	  0179	7E 04				MOV R6,#SECS_PER_MIN
+  206:	  017B	DF 0F				DJNZ R7,INT_C1_EXIT1
+  207:	  017D	7F 05				MOV R7,#MINS_PER_HOUR
+  208:	  017F	05 37				INC 37H
+  209:	  0181	E5 37				MOV A,37H
+  210:	  0183	B4 18 03			CJNE A,#24,INT_C1_EXIT0
+  211:	  0186	75 37 00			MOV 37H,#0
+  212:	  0189			INT_C1_EXIT0:
+  213:	  0189	12 03 E0			LCALL GET_LIGHT_TIME
+  214:	  018C			INT_C1_EXIT1:
+  215:	  018C	D0 E0				POP ACC
+  216:	  018E	32				RETI
+  217:				;-------------µØ¸ÐÏßÈ¦ÖÐ¶Ï´¦Àí----------------
+  218:	  018F			INT_EX0:
+  219:	  018F	C0 E0				PUSH ACC
+  220:	  0191	E5 90				MOV A,P1
+  221:	  0193	B8 32 03						CJNE R0,#32H,INT_EX0_NEXT1
+  222:	  0196	02 01 B5						LJMP INT_EX0_SHOOT2
+  223:	  0199	B8 33 03	INT_EX0_NEXT1:		CJNE R0,#33H,INT_EX0_NEXT2
+  224:	  019C	02 01 B5						LJMP INT_EX0_SHOOT2
+  225:	  019F	B8 34 03	INT_EX0_NEXT2:		CJNE R0,#34H,INT_EX0_NEXT3
+  226:	  01A2	02 01 A8						LJMP INT_EX0_SHOOT1
+  227:	  01A5	B8 35 17	INT_EX0_NEXT3:		CJNE R0,#35H,INT_EX0_EXIT
+  228:	  01A8	20 E0 02	INT_EX0_SHOOT1:		JB ACC.0,INT_EX0_SHOOT11
+  229:	  01AB	D2 94							SETB P1.4
+  230:	  01AD			INT_EX0_SHOOT11:
+  231:	  01AD	20 E1 0F						JB ACC.1,INT_EX0_EXIT
+  232:	  01B0	D2 95							SETB P1.5
+  233:	  01B2	02 01 BF						LJMP INT_EX0_EXIT
+  234:	  01B5	20 E2 02	INT_EX0_SHOOT2:		JB ACC.2,INT_EX0_SHOOT22
+  235:	  01B8	D2 96							SETB P1.6
+  236:	  01BA			INT_EX0_SHOOT22:
+  237:	  01BA	20 E3 02						JB ACC.3,INT_EX0_EXIT
+  238:	  01BD	D2 97							SETB P1.7
+  239:	  01BF			INT_EX0_EXIT:
+  240:	  01BF	74 1E				MOV A,#30
+  241:	  01C1			INT_EX0_EXIT0:
+  242:	  01C1	12 04 8C			LCALL DELAY10
+  243:	  01C4	D5 E0 FA			DJNZ ACC,INT_EX0_EXIT0
+  244:	  01C7			INT_EX0_EXIT1:
+  245:	  01C7	75 90 0F			MOV P1,#0FH
+  246:	  01CA	D0 E0				POP ACC
+  247:	  01CC	32				RETI
+  248:				;-------------°´¼üÖÐ¶Ï´¦Àí³ÌÐò----------------
+  249:	  01CD			INT_EX1:							;Íâ²¿ÖÐ¶Ï1´¦Àí£¬¼üÅÌ
+  250:	  01CD	C0 D0				PUSH PSW
+  251:	  01CF	C0 E0				PUSH ACC
+  252:	  01D1	E5 A0				MOV A,P2   ;ÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ
+  253:	  01D3	54 F8				ANL A,#0F8H
+  254:	  01D5	64 F8				XRL A,#0F8H
+  255:	  01D7	60 29				JZ INT_EX1_EXIT
+  256:	  01D9	12 04 8C			LCALL DELAY10
+  257:	  01DC	E5 A0				MOV A,P2   ;ÔÙ´ÎÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ,Ïû³ýÇ°ÑØ¶¶¶¯
+  258:	  01DE	54 F8				ANL A,#0F8H
+  259:	  01E0	64 F8				XRL A,#0F8H
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 6
+
+
+
+ Line  I  Addr  Code            Source
+
+  260:	  01E2	60 1E				JZ INT_EX1_EXIT
+  261:	  01E4	20 E3 0C			JB ACC.3,KEY01
+  262:	  01E7	20 E4 0C			JB ACC.4,KEY02
+  263:	  01EA	20 E5 0C			JB ACC.5,KEY03
+  264:	  01ED	20 E6 0C			JB ACC.6,KEY04
+  265:	  01F0	20 E7 0C			JB ACC.7,KEY05
+  266:	  01F3	02 02 14			KEY01:LJMP KEY1
+  267:	  01F6	02 02 42			KEY02:LJMP KEY2
+  268:	  01F9	02 02 BA			KEY03:LJMP KEY3
+  269:	  01FC	02 02 BF			KEY04:LJMP KEY4
+  270:	  01FF	02 03 10			KEY05:LJMP KEY5
+  271:	  0202			INT_EX1_EXIT:
+  272:	  0202	E5 A0				MOV A,P2   ;ÅÐ¶ÏÊÇ·ñÓÐ¼ü°´ÏÂ£¬Ïû³ýºóÑØ¶¶¶¯
+  273:	  0204	54 F8				ANL A,#0F8H
+  274:	  0206	64 F8				XRL A,#0F8H
+  275:	  0208	60 05				JZ INT_EX1_EXIT_1
+  276:	  020A	12 04 9D			LCALL DELAY4ms5
+  277:	  020D	80 F3				SJMP INT_EX1_EXIT
+  278:	  020F			INT_EX1_EXIT_1:
+  279:	  020F	D0 E0				POP ACC
+  280:	  0211	D0 D0				POP PSW
+  281:	  0213	32				RETI
+  282:
+  283:	  0214			KEY1: ;¿ª¹Ø¼ü
+  284:	  0214	BC 00 14			CJNE R4,#00,KEY1_NEXT1
+  285:	  0217	7C 01				MOV R4,#1		 ;¿ªÆôÆÁ
+  286:	  0219	85 37 3A			MOV 3AH,37H
+  287:	  021C	85 3A 38			MOV 38H,3AH
+  288:	  021F	12 03 D0			LCALL HEX2BCD
+  289:	  0222	75 39 FD			MOV 39H,#LDD6
+  290:	  0225	12 04 31			LCALL DISPLAY_NUMBER
+  291:	  0228	02 02 02			LJMP INT_EX1_EXIT
+  292:	  022B			KEY1_NEXT1:
+  293:	  022B	7C 00				MOV R4,#0		 ;¹Ø±ÕÆÁ
+  294:	  022D	75 3A 00			MOV 3AH,#0
+  295:	  0230	75 3B 00			MOV 3BH,#0
+  296:	  0233	75 3C 00			MOV 3CH,#0
+  297:	  0236	75 38 FF			MOV 38H,#0FFH
+  298:	  0239	75 39 FD			MOV 39H,#LDD6
+  299:	  023C	12 04 31			LCALL DISPLAY_NUMBER
+  300:	  023F	02 02 02			LJMP INT_EX1_EXIT
+  301:
+  302:	  0242			KEY2:	;È·ÈÏ¼ü£¬OK¼ü
+  303:	  0242	EC				MOV A,R4
+  304:	  0243	F9				MOV R1,A
+  305:	  0244	B9 00 03			CJNE R1,#0,KEY2_R01
+  306:	  0247	02 02 02	 		LJMP INT_EX1_EXIT
+  307:	  024A	D9 03		KEY2_R01:		DJNZ R1,KEY2_R02
+  308:	  024C	02 02 59					LJMP KEY2_R1
+  309:	  024F	D9 03		KEY2_R02:		DJNZ R1,KEY2_R03
+  310:	  0251	02 02 66					LJMP KEY2_R2
+  311:	  0254	D9 AC		KEY2_R03:		DJNZ R1,INT_EX1_EXIT
+  312:	  0256	02 02 73					LJMP KEY2_R3
+  313:	  0259			KEY2_R1:
+  314:	  0259	0C				INC R4
+  315:	  025A	85 3B 38			MOV 38H,3BH
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 7
+
+
+
+ Line  I  Addr  Code            Source
+
+  316:	  025D	75 39 FD			MOV 39H,#LDD6
+  317:	  0260	12 04 31			LCALL DISPLAY_NUMBER
+  318:	  0263	02 02 02			LJMP INT_EX1_EXIT
+  319:	  0266			KEY2_R2:
+  320:	  0266	0C				INC R4
+  321:	  0267	85 3C 38			MOV 38H,3CH
+  322:	  026A	75 39 FD			MOV 39H,#LDD6
+  323:	  026D	12 04 31			LCALL DISPLAY_NUMBER
+  324:	  0270	02 02 02			LJMP INT_EX1_EXIT
+  325:	  0273			KEY2_R3:
+  326:	  0273	7C 01				MOV R4,#1
+  327:	  0275	85 3A 38			MOV 38H,3AH
+  328:	  0278	12 03 D0			LCALL HEX2BCD
+  329:	  027B	75 39 FD			MOV 39H,#LDD6
+  330:	  027E	12 04 31			LCALL DISPLAY_NUMBER
+  331:	  0281	E5 3A				MOV A,3AH
+  332:	  0283	23				RL A
+  333:	  0284	24 50				ADD A,#50H
+  334:	  0286	C9				XCH A,R1
+  335:	  0287	E5 3B				MOV A,3BH
+  336:	  0289	C2 D7				CLR CY
+  337:	  028B	94 03				SUBB A,#3
+  338:	  028D	30 D7 03			JNB CY, KEY2_R3_NEXT1
+  339:	  0290	75 3B 00			MOV 3BH,#00H
+  340:	  0293			KEY2_R3_NEXT1:
+  341:	  0293	A7 3B				MOV @R1,3BH
+  342:	  0295	09				INC R1
+  343:	  0296	E5 3C				MOV A,3CH
+  344:	  0298	C2 D7				CLR CY
+  345:	  029A	94 03				SUBB A,#3
+  346:	  029C	30 D7 03			JNB CY, KEY2_R3_NEXT2
+  347:	  029F	75 3C 00			MOV 3CH,#00H
+  348:	  02A2			KEY2_R3_NEXT2:
+  349:	  02A2	A7 3C				MOV @R1,3CH
+  350:	  02A4	75 3B 00			MOV 3BH,#00H
+  351:	  02A7	75 3C 00			MOV 3CH,#00H
+  352:	  02AA	A9 3A				MOV R1,3AH	 ;Èç¹û¸ü¸ÄµÄÎªµ±Ç°Ê±¼ä¶Î£¬ÔòÁ¢¼´µ÷ÓÃGET_LIGHT_TIMEÖØÔØµ¹¼ÆÊ±Ê±¼ä
+  353:	  02AC	E5 37				MOV A,37H
+  354:	  02AE	C2 D7				CLR CY
+  355:	  02B0	99				SUBB A,R1
+  356:	  02B1	B4 00 03			CJNE A,#00H,KEY2_R3_EXIT
+  357:	  02B4	12 03 E0			LCALL GET_LIGHT_TIME
+  358:	  02B7			KEY2_R3_EXIT:
+  359:	  02B7	02 02 02			LJMP INT_EX1_EXIT
+  360:
+  361:	  02BA	B2 7F		KEY3:	CPL 7FH						;Ñ¡Î»Êý
+  362:	  02BC	02 02 02			LJMP INT_EX1_EXIT
+  363:
+  364:	  02BF			KEY4:			         ;¼ÓÒ»
+  365:	  02BF	EC				MOV A,R4
+  366:	  02C0	F9				MOV R1,A
+  367:	  02C1	B9 00 03			CJNE R1,#0,KEY4_R01
+  368:	  02C4	02 02 02	 		LJMP INT_EX1_EXIT
+  369:	  02C7	D9 19		KEY4_R01:		DJNZ R1,KEY4_R02
+  370:	  02C9	05 3A						INC 3AH
+  371:	  02CB	E5 3A						MOV A,3AH
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 8
+
+
+
+ Line  I  Addr  Code            Source
+
+  372:	  02CD	B4 18 03					CJNE A,#24,KEY4_R01_next
+  373:	  02D0	75 3A 00					MOV 3AH,#0
+  374:	  02D3	85 3A 38	KEY4_R01_next:	MOV 38H,3AH
+  375:	  02D6	12 03 D0					LCALL HEX2BCD
+  376:	  02D9	75 39 FD					MOV 39H,#LDD6
+  377:	  02DC	12 04 31					LCALL DISPLAY_NUMBER
+  378:	  02DF	02 02 02					LJMP INT_EX1_EXIT
+  379:	  02E2	D9 15		KEY4_R02:		DJNZ R1,KEY4_R03
+  380:	  02E4	85 3B 3D					MOV 3DH,3BH
+  381:	  02E7	12 03 61					LCALL BCDINC
+  382:	  02EA	85 3D 3B					MOV 3BH,3DH
+  383:	  02ED	85 3B 38					MOV 38H,3BH
+  384:	  02F0	75 39 FD					MOV 39H,#LDD6
+  385:	  02F3	12 04 31					LCALL DISPLAY_NUMBER
+  386:	  02F6	02 02 02					LJMP INT_EX1_EXIT
+  387:	  02F9	D9 12		KEY4_R03:		DJNZ R1,KEY4_EXIT
+  388:	  02FB	85 3C 3D					MOV 3DH,3CH
+  389:	  02FE	12 03 61					LCALL BCDINC
+  390:	  0301	85 3D 3C					MOV 3CH,3DH
+  391:	  0304	85 3C 38					MOV 38H,3CH
+  392:	  0307	75 39 FD					MOV 39H,#LDD6
+  393:	  030A	12 04 31					LCALL DISPLAY_NUMBER
+  394:	  030D	02 02 02	KEY4_EXIT:		LJMP INT_EX1_EXIT
+  395:
+  396:	  0310	EC		KEY5: 			MOV A,R4		;¼õÒ»
+  397:	  0311	F9						MOV R1,A
+  398:	  0312	B9 00 03					CJNE R1,#0,KEY5_R01
+  399:	  0315	02 02 02	 				LJMP INT_EX1_EXIT
+  400:	  0318	D9 19		KEY5_R01:		DJNZ R1,KEY5_R02
+  401:	  031A	E5 3A						MOV A,3AH
+  402:	  031C	B4 00 03					CJNE A,#0,KEY5_R01_next
+  403:	  031F	75 3A 18					MOV 3AH,#24
+  404:	  0322	15 3A		KEY5_R01_next:	DEC 3AH
+  405:	  0324	85 3A 38					MOV 38H,3AH
+  406:	  0327	12 03 D0					LCALL HEX2BCD
+  407:	  032A	75 39 FD					MOV 39H,#LDD6
+  408:	  032D	12 04 31					LCALL DISPLAY_NUMBER
+  409:	  0330	02 02 02					LJMP INT_EX1_EXIT
+  410:	  0333	D9 15		KEY5_R02:		DJNZ R1,KEY5_R03
+  411:	  0335	85 3B 3D					MOV 3DH,3BH
+  412:	  0338	12 03 8C					LCALL BCDDEC
+  413:	  033B	85 3D 3B					MOV 3BH,3DH
+  414:	  033E	85 3B 38					MOV 38H,3BH
+  415:	  0341	75 39 FD					MOV 39H,#LDD6
+  416:	  0344	12 04 31					LCALL DISPLAY_NUMBER
+  417:	  0347	02 02 02					LJMP INT_EX1_EXIT
+  418:	  034A	D9 12		KEY5_R03:		DJNZ R1,KEY5_EXIT
+  419:	  034C	85 3C 3D					MOV 3DH,3CH
+  420:	  034F	12 03 8C					LCALL BCDDEC
+  421:	  0352	85 3D 3C					MOV 3CH,3DH
+  422:	  0355	85 3C 38					MOV 38H,3CH
+  423:	  0358	75 39 FD					MOV 39H,#LDD6
+  424:	  035B	12 04 31					LCALL DISPLAY_NUMBER
+  425:	  035E	02 02 02	KEY5_EXIT:		LJMP INT_EX1_EXIT
+  426:
+  427:	  0361	C0 E0		BCDINC:	PUSH ACC
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 9
+
+
+
+ Line  I  Addr  Code            Source
+
+  428:	  0363	E5 3D				MOV A,3DH
+  429:	  0365	20 7F 10			JB 7FH,BCDINC_HIGH
+  430:	  0368	54 0F				ANL A,#0FH
+  431:	  036A	B4 09 06			CJNE A,#09H,BCDINC_LOW1
+  432:	  036D	53 3D F0			ANL 3DH,#0F0H
+  433:	  0370	02 03 89			LJMP BCDINC_EXIT
+  434:	  0373			BCDINC_LOW1:
+  435:	  0373	05 3D				INC 3DH
+  436:	  0375	02 03 89			LJMP BCDINC_EXIT
+  437:	  0378			BCDINC_HIGH:
+  438:	  0378	54 F0				ANL A,#0F0H
+  439:	  037A	B4 90 06			CJNE A,#90H,BCDINC_HIGH1
+  440:	  037D	53 3D 0F			ANL 3DH,#0FH
+  441:	  0380	02 03 89			LJMP BCDINC_EXIT
+  442:	  0383			BCDINC_HIGH1:
+  443:	  0383	E5 3D				MOV A,3DH
+  444:	  0385	24 10				ADD A,#10H
+  445:	  0387	F5 3D				MOV 3DH,A
+  446:	  0389			BCDINC_EXIT:
+  447:	  0389	D0 E0				POP ACC
+  448:	  038B	22				RET
+  449:
+  450:	  038C	C0 E0		BCDDEC:	PUSH ACC
+  451:	  038E	E5 3D				MOV A,3DH
+  452:	  0390	20 7F 10			JB 7FH,BCDDEC_HIGH
+  453:	  0393	54 0F				ANL A,#0FH
+  454:	  0395	B4 00 06			CJNE A,#00H,BCDDEC_LOW1
+  455:	  0398	43 3D 09			ORL 3DH,#09H
+  456:	  039B	02 03 B4			LJMP BCDDEC_EXIT
+  457:	  039E			BCDDEC_LOW1:
+  458:	  039E	15 3D				DEC 3DH
+  459:	  03A0	02 03 B4			LJMP BCDDEC_EXIT
+  460:	  03A3			BCDDEC_HIGH:
+  461:	  03A3	54 F0				ANL A,#0F0H
+  462:	  03A5	B4 00 06			CJNE A,#00H,BCDDEC_HIGH1
+  463:	  03A8	43 3D 90			ORL 3DH,#90H
+  464:	  03AB	02 03 B4			LJMP BCDDEC_EXIT
+  465:	  03AE			BCDDEC_HIGH1:
+  466:	  03AE	E5 3D				MOV A,3DH
+  467:	  03B0	94 10				SUBB A,#10H
+  468:	  03B2	F5 3D				MOV 3DH,A
+  469:	  03B4			BCDDEC_EXIT:
+  470:	  03B4	D0 E0				POP ACC
+  471:	  03B6	22				RET
+  472:
+  473:	  03B7			CLOSEDIG:				;¸ù¾ÝÑ¡Î»±êÖ¾£¬¹Ø±ÕÄ³Ò»Î»µÄÏÖÊµ£¬ÊµÏÖÉÁË¸¹¦ÄÜ
+  474:	  03B7	C0 E0				PUSH ACC
+  475:	  03B9	E5 3E				MOV A,3EH
+  476:	  03BB	20 7F 05			JB 7FH,CLOSEDIG_HIGH
+  477:	  03BE	44 0F				ORL A,#0FH
+  478:	  03C0	02 03 C5			LJMP CLOSEDIG_EXIT
+  479:	  03C3			CLOSEDIG_HIGH:
+  480:	  03C3	44 F0				ORL A,#0F0H
+  481:	  03C5			CLOSEDIG_EXIT:
+  482:	  03C5	F5 38				MOV 38H,A
+  483:	  03C7	75 39 FD			MOV 39H,#LDD6
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 10
+
+
+
+ Line  I  Addr  Code            Source
+
+  484:	  03CA	12 04 31			LCALL DISPLAY_NUMBER
+  485:	  03CD	D0 E0				POP ACC
+  486:	  03CF	22				RET
+  487:				;-------------END OF °´¼üÖÐ¶Ï´¦Àí³ÌÐò----------------
+  488:
+  489:	  03D0			HEX2BCD:			  ;½«38HÖÐµÄ16½øÖÆÊý×ªÎªBCDÂë
+  490:	  03D0	C0 E0				PUSH ACC
+  491:	  03D2	E5 38				MOV A,38H
+  492:	  03D4	75 F0 0A			MOV B,#10
+  493:	  03D7	84				DIV AB
+  494:	  03D8	C4				SWAP A
+  495:	  03D9	45 F0				ORL A,B
+  496:	  03DB	F5 38				MOV 38H,A
+  497:	  03DD	D0 E0				POP ACC
+  498:	  03DF	22				RET
+  499:				;---------------------------
+  500:	  03E0			GET_LIGHT_TIME:							;»ñÈ¡µ±Ç°ºìµÆÊ±¼ä×Ó³ÌÐò£¬´æÈë30hºÍ31
+				h
+  501:	  03E0	C0 83				PUSH DPH						;Ä¬ÈÏºìµÆÊ±¼ä´óÓÚ3Ãë
+  502:	  03E2	C0 82				PUSH DPL
+  503:	  03E4	C0 E0				PUSH ACC
+  504:	  03E6	C0 D0				PUSH PSW
+  505:	  03E8	D2 D3				SETB RS0
+  506:	  03EA	90 04 BE			MOV DPTR,#TAB_LIGHT_TIME ;¶ÁÈëÐÅºÅµÆÑÓÊ±ÐÅÏ¢,30HÎªºìµÆA£¬31HÎªºìµÆB
+  507:	  03ED	E5 37				MOV A,37H
+  508:	  03EF	23				RL A
+  509:	  03F0	93				MOVC A,@A+DPTR
+  510:	  03F1	F5 30				MOV 30H,A
+  511:	  03F3	E5 37				MOV A,37H
+  512:	  03F5	23				RL A
+  513:	  03F6	04				INC A
+  514:	  03F7	93				MOVC A,@A+DPTR
+  515:	  03F8	F5 31				MOV 31H,A
+  516:						;¼ì²éÊÇ·ñÓÐÓÃ»§×Ô¶¨ÒåÊý¾Ý
+  517:	  03FA	E5 37				MOV A,37H
+  518:	  03FC	23				RL A
+  519:	  03FD	24 50				ADD A,#50H
+  520:	  03FF	F8				MOV R0,A
+  521:	  0400	04				INC A
+  522:	  0401	F9				MOV R1,A
+  523:	  0402	E6				MOV A,@R0
+  524:	  0403	47				ORL A,@R1
+  525:	  0404	60 12				JZ GET_LIGHT_TIME_EXIT ;ÈôÈ«ÎªÁã£¬ËµÃ÷ÎÞÓÃ»§¶¨ÒåÊý¾Ý£¬Ö±½ÓÌø³ö
+  526:	  0406	B6 00 04			CJNE @R0,#00H,GET_LIGHT_TIME_NEXT1
+  527:	  0409	87 30				MOV 30H,@R1			   ;ÈôÖ»ÓÐÒ»¸öÎª0£¬ÔòÊ¹Á½Â·¿ÚÊý×ÖÏàµÈ
+  528:	  040B	81 0F				AJMP GET_LIGHT_TIME_NEXT2
+  529:	  040D			GET_LIGHT_TIME_NEXT1:
+  530:	  040D	86 30				MOV 30H,@R0
+  531:	  040F			GET_LIGHT_TIME_NEXT2:
+  532:	  040F	B7 00 04			CJNE @R1,#00H,GET_LIGHT_TIME_NEXT3
+  533:	  0412	86 31				MOV 31H,@R0
+  534:	  0414	81 18				AJMP GET_LIGHT_TIME_EXIT
+  535:	  0416			GET_LIGHT_TIME_NEXT3:
+  536:	  0416	87 31				MOV 31H,@R1
+  537:	  0418			GET_LIGHT_TIME_EXIT:
+  538:	  0418	C2 D3				CLR RS0
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 11
+
+
+
+ Line  I  Addr  Code            Source
+
+  539:	  041A	D0 D0				POP PSW
+  540:	  041C	D0 E0				POP ACC
+  541:	  041E	D0 82				POP DPL
+  542:	  0420	D0 83				POP DPH
+  543:	  0422	22				RET
+  544:				;--------------------
+  545:	  0423			CHANGE_LIGHT:				;¿ªÐÅºÅµÆ×Ó³ÌÐò
+  546:	  0423	C0 83				PUSH DPH
+  547:	  0425	C0 E0				PUSH ACC
+  548:	  0427	75 83 FE			MOV DPH,#LED
+  549:	  042A	E6				MOV A,@R0
+  550:	  042B	F0				MOVX @DPTR,A
+  551:	  042C	D0 E0				POP ACC
+  552:	  042E	D0 83				POP DPH
+  553:	  0430	22				RET
+  554:				;-------------------------
+  555:	  0431			DISPLAY_NUMBER:				;ÏÔÊ¾µ¹¼ÆÊ±Êý×Ö×Ó³ÌÐò£¬ÏÔÊ¾38HÖÐµÄÊý×Öµ½39HÖ¸¶¨µÄµØÖ·ÖÐ ÏÈÏÔ
+				Ê¾µÍÎ»£¬ÔÙÏÔÊ¾¸ßÎ»
+  556:	  0431	C0 E0				PUSH ACC
+  557:	  0433	E5 38				MOV A,38H
+  558:	  0435	53 38 0F			ANL 38H,#0FH
+  559:	  0438	12 04 55			LCALL GETDIGIT
+  560:	  043B	85 39 83			MOV DPH,39H
+  561:	  043E	12 04 6A			LCALL DISDIGIT
+  562:	  0441	C4				SWAP A
+  563:	  0442	F5 38				MOV 38H,A
+  564:	  0444	53 38 0F			ANL 38H,#0FH
+  565:	  0447	12 04 55			LCALL GETDIGIT
+  566:	  044A	15 39				DEC 39H
+  567:	  044C	85 39 83			MOV DPH,39H
+  568:	  044F	12 04 6A			LCALL DISDIGIT
+  569:	  0452	D0 E0				POP ACC
+  570:	  0454	22				RET
+  571:				;-----------------------------
+  572:	  0455			GETDIGIT:					;È¡¶ÎÂë×Ó³ÌÐò
+  573:	  0455	C0 83				PUSH DPH
+  574:	  0457	C0 82				PUSH DPL
+  575:	  0459	C0 E0				PUSH ACC
+  576:	  045B	90 04 AE			MOV DPTR,#DIGIT
+  577:	  045E	E5 38				MOV A,38H
+  578:	  0460	93				MOVC A,@A+DPTR
+  579:	  0461	C5 38				XCH A,38H
+  580:	  0463	D0 E0				POP ACC
+  581:	  0465	D0 82				POP DPL
+  582:	  0467	D0 83				POP DPH
+  583:	  0469	22				RET
+  584:				;--------------------------------
+  585:	  046A			DISDIGIT:					;ËÍÊýÂë¹ÜÏÔÊ¾×Ó³ÌÐò
+  586:	  046A	C0 E0				PUSH ACC
+  587:	  046C	E5 38				MOV	A,38H
+  588:	  046E	F0				MOVX @DPTR,A
+  589:	  046F	D0 E0				POP ACC
+  590:	  0471	22				RET
+  591:				;------------------------------
+  592:	  0472			SUBBCD:						;BCDÂë¼õÒ»,¶Ô36HÖÐµÄÊý×öBCDÂë¼õ1
+  593:	  0472	C0 E0				PUSH ACC
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 12
+
+
+
+ Line  I  Addr  Code            Source
+
+  594:	  0474	C0 D0				PUSH PSW
+  595:	  0476	15 36				DEC 36H
+  596:	  0478	E5 36				MOV A,36H
+  597:	  047A	54 0F				ANL A,#0FH
+  598:	  047C	B4 0F 08			CJNE A,#0FH,SUBBCD_EXIT
+  599:	  047F	C2 D7				CLR CY
+  600:	  0481	E5 36				MOV A,36H
+  601:	  0483	94 06				SUBB A,#06
+  602:	  0485	F5 36				MOV 36H,A
+  603:	  0487			SUBBCD_EXIT:
+  604:	  0487	D0 D0				POP PSW
+  605:	  0489	D0 E0				POP ACC
+  606:	  048B	22				RET
+  607:
+  608:	  048C			DELAY10:
+  609:	  048C	00				NOP
+  610:	  048D	75 40 09			MOV 40H,#9
+  611:	  0490	75 41 FF	DL10_1: MOV 41H,#255
+  612:	  0493	00		DL10_2: NOP
+  613:	  0494	00				NOP
+  614:	  0495	D5 41 FB			DJNZ 41H,DL10_2
+  615:	  0498	D5 40 F5			DJNZ 40H,DL10_1
+  616:	  049B	00				NOP
+  617:	  049C	22				RET
+  618:
+  619:	  049D			DELAY4ms5:
+  620:	  049D	75 40 04			MOV 40H,#4
+  621:	  04A0	75 41 D2	DL45_1: MOV 41H,#210
+  622:	  04A3	00		DL45_2: NOP
+  623:	  04A4	00				NOP
+  624:	  04A5	00				NOP
+  625:	  04A6	D5 41 FA			DJNZ 41H,DL45_2
+  626:	  04A9	D5 40 F4			DJNZ 40H,DL45_1
+  627:	  04AC	00				NOP
+  628:	  04AD	22				RET
+  629:				;;------------TABLES----------------
+  630:	  04AE			DIGIT:							;LEDÊýÂë¹Ü¶ÎÂë±í
+  631:	  04AE	3F 06 5B 4F			DB 3FH,06H,5BH,4FH,66H
+	  04B2	66
+  632:	  04B3	6D 7D 07 7F			DB 6DH,7DH,07H,7FH,6FH
+	  04B7	6F
+  633:	  04B8	77 7C 39 5E			DB 77H,7CH,39H,5EH,79H,00H
+	  04BC	79 00
+  634:	  04BE			TAB_LIGHT_TIME:  				;Ô¤ÉèµÄÐÅºÅµÆÊ±¼ä³£Êý£¬¹²24ÐÐ£¬48¸öÖµ
+  635:	  04BE	03 04				DB 03H, 04H
+  636:	  04C0	04 05				DB 04H, 05H
+  637:	  04C2	05 06				DB 05H, 06H
+  638:	  04C4	06 07				DB 06H, 07H
+  639:	  04C6	07 08				DB 07H, 08H
+  640:	  04C8	08 09				DB 08H, 09H
+  641:	  04CA	09 10				DB 09H, 10H
+  642:	  04CC	10 11				DB 10H, 11H
+  643:	  04CE	11 12				DB 11H, 12H
+  644:	  04D0	12 13				DB 12H, 13H
+  645:	  04D2	13 14				DB 13H, 14H
+  646:	  04D4	14 15				DB 14H, 15H
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 13
+
+
+
+ Line  I  Addr  Code            Source
+
+  647:	  04D6	15 16				DB 15H, 16H
+  648:	  04D8	16 17				DB 16H, 17H
+  649:	  04DA	17 18				DB 17H, 18H
+  650:	  04DC	18 19				DB 18H, 19H
+  651:	  04DE	19 20				DB 19H, 20H
+  652:	  04E0	20 21				DB 20H, 21H
+  653:	  04E2	21 22				DB 21H, 22H
+  654:	  04E4	22 23				DB 22H, 23H
+  655:	  04E6	23 24				DB 23H, 24H
+  656:	  04E8	24 25				DB 24H, 25H
+  657:	  04EA	25 26				DB 25H, 26H
+  658:	  04EC	26 27				DB 26H, 27H
+  659:				;----------- END --------------------
+  660:				END
+
+
+
+
+
+                     register banks used:  ---
+
+                     no errors
+
+
+
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 14
+
+
+
+
+
+	       L I S T   O F   S Y M B O L S
+	       =============================
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+??ASEM_51			  NUMBER    8051
+??VERSION			  NUMBER    0130
+AC				  BIT	      D6
+ACC				  DATA	      E0
+B				  DATA	      F0
+BCDDEC				  CODE	    038C	 450
+BCDDEC_EXIT			  CODE	    03B4	 469
+BCDDEC_HIGH			  CODE	    03A3	 460
+BCDDEC_HIGH1			  CODE	    03AE	 465
+BCDDEC_LOW1			  CODE	    039E	 457
+BCDINC				  CODE	    0361	 427
+BCDINC_EXIT			  CODE	    0389	 446
+BCDINC_HIGH			  CODE	    0378	 437
+BCDINC_HIGH1			  CODE	    0383	 442
+BCDINC_LOW1			  CODE	    0373	 434
+CHANGE_LIGHT			  CODE	    0423	 545
+CLOSEDIG			  CODE	    03B7	 473
+CLOSEDIG_EXIT			  CODE	    03C5	 481
+CLOSEDIG_HIGH			  CODE	    03C3	 479
+CY				  BIT	      D7
+DELAY10				  CODE	    048C	 608
+DELAY4MS5			  CODE	    049D	 619
+DIGIT				  CODE	    04AE	 630
+DISDIGIT			  CODE	    046A	 585
+DISPLAY_NUMBER			  CODE	    0431	 555
+DL10_1				  CODE	    0490	 611
+DL10_2				  CODE	    0493	 612
+DL45_1				  CODE	    04A0	 621
+DL45_2				  CODE	    04A3	 622
+DPH				  DATA	      83
+DPL				  DATA	      82
+EA				  BIT	      AF
+ES				  BIT	      AC
+ET0				  BIT	      A9
+ET1				  BIT	      AB
+EX0				  BIT	      A8
+EX1				  BIT	      AA
+EXTI0				  CODE	    0003
+EXTI1				  CODE	    0013
+F0				  BIT	      D5
+GETDIGIT			  CODE	    0455	 572
+GET_LIGHT_TIME			  CODE	    03E0	 500
+GET_LIGHT_TIME_EXIT		  CODE	    0418	 537
+GET_LIGHT_TIME_NEXT1		  CODE	    040D	 529
+GET_LIGHT_TIME_NEXT2		  CODE	    040F	 531
+GET_LIGHT_TIME_NEXT3		  CODE	    0416	 535
+G_R1				  NUMBER    000C	  40
+HEX2BCD				  CODE	    03D0	 489
+IE				  DATA	      A8
+IE0				  BIT	      89
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 15
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+IE1				  BIT	      8B
+INT0				  BIT	      B2
+INT1				  BIT	      B3
+INT_C1				  CODE	    00AD	 106
+INT_C1_BLINK			  CODE	    00B4	 110
+INT_C1_BLINK_EXIT		  CODE	    00CF	 124
+INT_C1_BLINK_RED		  CODE	    00C9	 121
+INT_C1_EXIT			  CODE	    014C	 184
+INT_C1_EXIT0			  CODE	    0189	 212
+INT_C1_EXIT00			  CODE	    0177	 203
+INT_C1_EXIT1			  CODE	    018C	 214
+INT_C1_NEXT0			  CODE	    0120	 161
+INT_C1_NEXT1			  CODE	    0139	 172
+INT_C1_NEXT2			  CODE	    0143	 178
+INT_C1_NORMAL			  CODE	    00D2	 126
+INT_C1_NORMAL1			  CODE	    00F3	 142
+INT_C1_REVERSEDISPLAY		  CODE	    0167	 196
+INT_C1_UNBLINK_RED		  CODE	    00EA	 138
+INT_EX0				  CODE	    018F	 218
+INT_EX0_EXIT			  CODE	    01BF	 239
+INT_EX0_EXIT0			  CODE	    01C1	 241
+INT_EX0_EXIT1			  CODE	    01C7	 244
+INT_EX0_NEXT1			  CODE	    0199	 223
+INT_EX0_NEXT2			  CODE	    019F	 225
+INT_EX0_NEXT3			  CODE	    01A5	 227
+INT_EX0_SHOOT1			  CODE	    01A8	 228
+INT_EX0_SHOOT11			  CODE	    01AD	 230
+INT_EX0_SHOOT2			  CODE	    01B5	 234
+INT_EX0_SHOOT22			  CODE	    01BA	 236
+INT_EX1				  CODE	    01CD	 249
+INT_EX1_EXIT			  CODE	    0202	 271
+INT_EX1_EXIT_1			  CODE	    020F	 278
+INT_TO				  CODE	    009E	  98
+IP				  DATA	      B8
+IT0				  BIT	      88
+IT1				  BIT	      8A
+KEY01				  CODE	    01F3	 266
+KEY02				  CODE	    01F6	 267
+KEY03				  CODE	    01F9	 268
+KEY04				  CODE	    01FC	 269
+KEY05				  CODE	    01FF	 270
+KEY1				  CODE	    0214	 283
+KEY1_NEXT1			  CODE	    022B	 292
+KEY2				  CODE	    0242	 302
+KEY2_R01			  CODE	    024A	 307
+KEY2_R02			  CODE	    024F	 309
+KEY2_R03			  CODE	    0254	 311
+KEY2_R1				  CODE	    0259	 313
+KEY2_R2				  CODE	    0266	 319
+KEY2_R3				  CODE	    0273	 325
+KEY2_R3_EXIT			  CODE	    02B7	 358
+KEY2_R3_NEXT1			  CODE	    0293	 340
+KEY2_R3_NEXT2			  CODE	    02A2	 348
+KEY3				  CODE	    02BA	 361
+KEY4				  CODE	    02BF	 364
+KEY4_EXIT			  CODE	    030D	 394
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 16
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+KEY4_R01			  CODE	    02C7	 369
+KEY4_R01_NEXT			  CODE	    02D3	 374
+KEY4_R02			  CODE	    02E2	 379
+KEY4_R03			  CODE	    02F9	 387
+KEY5				  CODE	    0310	 396
+KEY5_EXIT			  CODE	    035E	 425
+KEY5_R01			  CODE	    0318	 400
+KEY5_R01_NEXT			  CODE	    0322	 404
+KEY5_R02			  CODE	    0333	 410
+KEY5_R03			  CODE	    034A	 418
+LDD1				  NUMBER    00F8	  33
+LDD2				  NUMBER    00F9	  34
+LDD3				  NUMBER    00FA	  35
+LDD4				  NUMBER    00FB	  36
+LDD5				  NUMBER    00FC	  37
+LDD6				  NUMBER    00FD	  38
+LED				  NUMBER    00FE	  39
+MAIN				  CODE	    0030	  49
+MINS_PER_HOUR			  NUMBER    0005	  45
+OV				  BIT	      D2
+P				  BIT	      D0
+P0				  DATA	      80
+P1				  DATA	      90
+P2				  DATA	      A0
+P3				  DATA	      B0
+PCON				  DATA	      87
+PS				  BIT	      BC
+PSW				  DATA	      D0
+PT0				  BIT	      B9
+PT1				  BIT	      BB
+PX0				  BIT	      B8
+PX1				  BIT	      BA
+RB8				  BIT	      9A
+RD				  BIT	      B7
+REN				  BIT	      9C
+RESET				  CODE	    0000
+RI				  BIT	      98
+RS0				  BIT	      D3
+RS1				  BIT	      D4
+RXD				  BIT	      B0
+R_G3				  NUMBER    0021	  42
+R_Y4				  NUMBER    0011	  43
+SBUF				  DATA	      99
+SCON				  DATA	      98
+SECS_PER_MIN			  NUMBER    0004	  44
+SINT				  CODE	    0023
+SM0				  BIT	      9F
+SM1				  BIT	      9E
+SM2				  BIT	      9D
+SP				  DATA	      81
+SUBBCD				  CODE	    0472	 592
+SUBBCD_EXIT			  CODE	    0487	 603
+T0				  BIT	      B4
+T1				  BIT	      B5
+TAB_LIGHT_TIME			  CODE	    04BE	 634
+TB8				  BIT	      9B
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 17
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+TCON				  DATA	      88
+TF0				  BIT	      8D
+TF1				  BIT	      8F
+TH0				  DATA	      8C
+TH1				  DATA	      8D
+TI				  BIT	      99
+TIMER0				  CODE	    000B
+TIMER1				  CODE	    001B
+TL0				  DATA	      8A
+TL1				  DATA	      8B
+TMOD				  DATA	      89
+TR0				  BIT	      8C
+TR1				  BIT	      8E
+TXD				  BIT	      B1
+WR				  BIT	      B6
+Y_R2				  NUMBER    000A	  41

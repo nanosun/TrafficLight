@@ -224,10 +224,10 @@
       <FileType>2</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>17</ColumnNumber>
+      <ColumnNumber>10</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>13</TopLine>
-      <CurrentLine>42</CurrentLine>
+      <TopLine>186</TopLine>
+      <CurrentLine>208</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\traflight.asm</PathWithFileName>
       <FilenameWithoutPath>traflight.asm</FilenameWithoutPath>
@@ -1579,9 +1579,9 @@
       <Documents>
         <Doc>
           <Name>.\traflight.asm</Name>
-          <ColumnNumber>17</ColumnNumber>
-          <TopLine>13</TopLine>
-          <CurrentLine>42</CurrentLine>
+          <ColumnNumber>10</ColumnNumber>
+          <TopLine>186</TopLine>
+          <CurrentLine>208</CurrentLine>
         </Doc>
       </Documents>
     </MDIGroup>

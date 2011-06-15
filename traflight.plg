@@ -9,7 +9,8 @@ Project File Date:  06/08/2011
 <h2>Output:</h2>
 Build target 'Target 1'
 assembling traflight.asm...
-traflight.asm(101): error A22: EXPRESSION TYPE DOES NOT MATCH INSTRUCTION
+traflight.asm(149): error A40: INVALID REGISTER
+traflight.asm(160): error A40: INVALID REGISTER
 Target not created
 Build target 'Target 1'
 assembling traflight.asm...
@@ -24,7 +25,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1088
+Program Size: data=9.0 xdata=0 code=1257
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -39,27 +40,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1091
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-traflight.asm(99): error A51: TARGET OUT OF RANGE
-traflight.asm(103): error A51: TARGET OUT OF RANGE
-Target not created
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1124
+Program Size: data=9.0 xdata=0 code=1259
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -74,7 +55,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1127
+Program Size: data=9.0 xdata=0 code=1286
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -89,7 +70,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1127
+Program Size: data=9.0 xdata=0 code=1258
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -104,7 +85,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1182
+Program Size: data=9.0 xdata=0 code=1282
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -119,7 +100,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1182
+Program Size: data=9.0 xdata=0 code=1283
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -134,52 +115,7 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1182
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-traflight.asm(206): error A9: SYNTAX ERROR
-traflight.asm(207): error A9: SYNTAX ERROR
-traflight.asm(208): error A9: SYNTAX ERROR
-traflight.asm(209): error A9: SYNTAX ERROR
-Target not created
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1200
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-traflight.asm(208): error A40: INVALID REGISTER
-Target not created
-Build target 'Target 1'
-assembling traflight.asm...
-traflight.asm(208): error A40: INVALID REGISTER
-Target not created
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1198
+Program Size: data=9.0 xdata=0 code=1265
 "traflight" - 0 Error(s), 3 Warning(s).
 Build target 'Target 1'
 assembling traflight.asm...
@@ -194,50 +130,5 @@ linking...
     SYMBOL:  ?C_START
     MODULE:  STARTUP.obj (?C_STARTUP)
     ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1198
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1196
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1196
-"traflight" - 0 Error(s), 3 Warning(s).
-Build target 'Target 1'
-assembling traflight.asm...
-linking...
-*** WARNING L5: CODE SPACE MEMORY OVERLAP
-    FROM:    0000H
-    TO:      0002H
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  ?C_START
-    MODULE:  STARTUP.obj (?C_STARTUP)
-    ADDRESS: 080AH
-Program Size: data=9.0 xdata=0 code=1196
+Program Size: data=9.0 xdata=0 code=1277
 "traflight" - 0 Error(s), 3 Warning(s).

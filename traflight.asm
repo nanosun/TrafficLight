@@ -5,10 +5,10 @@
 ;;完成键盘基本功能
 ;;------------------------
 ;;R0	 R1			  R2			  R3 			R6		  R7	  R5			 R4
-;;灯状态 临时使用 2红灯倒计时	  1绿灯倒计时    秒状态数码	 分状态	  空	 屏状态（0开1选段2调时间3调绿灯时间）
+;;灯状态 临时使用 2红灯倒计时	  1绿灯倒计时    秒状态数码	 分状态	  空	 屏状态（0开1选段2调路口A时间3调路口B时间）
 ;;------------------------
-;;30H  31H  32H-35H	   36H            37H			38H		 39H	  			 3AH         3BH     3CH			位7F	   3DH								3EH
-;;绿灯 红灯	灯状态地址 减一用  当前小时状态码  LED显示寄存器 数码管地址高八位	 屏段(HEX码) 屏绿灯 屏红灯（BCD码）	选位标志   BCDINC和BCDDEC子程序的操作位	   闪烁关灯程序数据传递位
+;;30H   31H      32H-35H	   36H            37H			38H		 39H	  			 3AH         3BH     3CH			位7F	   3DH								3EH
+;;红灯A 红灯B	灯状态地址 减一用  当前小时状态码  LED显示寄存器 数码管地址高八位	 屏段(HEX码) 屏绿灯 屏红灯（BCD码）	选位标志   BCDINC和BCDDEC子程序的操作位	   闪烁关灯程序数据传递位
 ;;------------------------
 ;;50H-7FH			  40H 41H				  位7E
 ;;用户定义灯状态	  delay10中用到的变量  区分一秒中的上下半秒
@@ -41,8 +41,8 @@
 		Y_R2 EQU 1010B
 		R_G3 EQU 100001B
 		R_Y4 EQU 10001B
-		SECS_PER_MIN EQU 10  ;每分中的秒数，调试用
-		MINS_PER_HOUR EQU 6 ;每小时中的分数，调试用																							
+		SECS_PER_MIN EQU 4  ;每分中的秒数，调试用
+		MINS_PER_HOUR EQU 5 ;每小时中的分数，调试用																							
 ;-----------------------------------------------------------	
 ;;--------------MAIN PROGRAM BEGIN---------------------------
 		ORG 0030H				 
@@ -54,19 +54,24 @@ MAIN:
 		MOV 34H,#R_G3
 		MOV 35H,#R_Y4
 		MOV TMOD,#61H	;初始化计时器 定时器0方式1 计数器1方式2
-		MOV TH0,#1FH	
-		MOV TL0,#00H	;2^16-57600 = 7936 = 1F00 12*2*8*57600=11.0592MHz
-		MOV TH1,#0FCH
-		MOV TL1,#0FCH	;4. 0.5S ;	
+		MOV TH0,#0E7H	
+		MOV TL0,#00H	;2^16-6400 = 59136 = E700, 12*2*72*6400=11.0592MHz，取得较小是为了照顾WDT看门狗
+		MOV TH1,#0DCH
+		MOV TL1,#0DCH	;36. 0.5S ;	
 		MOV R6,#SECS_PER_MIN ;每分中的秒数，调试用
 		MOV R7,#MINS_PER_HOUR ;每小时中的分数，调试用
-		MOV 37H,#23		;初始化当前时间（小时状态）
+		MOV 37H,#8		;初始化当前时间（小时状态）
 		;MOV 7EH,#03H	;测试RAM中红绿灯时间表用
 		;MOV 7FH,#00H
 		LCALL GET_LIGHT_TIME ;获取倒计时时间存入 30H,31H
 		MOV R0,#32H	;R0记录信号灯寄存器状态
+		MOV R2,30H
 		MOV R3,30H
-		MOV R2,31H
+		MOV 36H,R3
+		LCALL SUBBCD
+		LCALL SUBBCD
+		LCALL SUBBCD
+		MOV R3,36H
 		LCALL CHANGE_LIGHT	;开信号灯
 		MOV 38H,R3	   ;送显示，开数码管
 		MOV 39H,#LDD2
@@ -85,12 +90,16 @@ MAIN:
 		SETB IT1
 		SETB TR0
 		SETB TR1
+		MOV 0A6H,#01EH ;激活看门狗
+		MOV 0A6H,#0E1H 
 		;初始化完毕，开始计时
 		SJMP $
 ;;-------------- END OF MAIN -----------------
 INT_TO:								;计时器0中断处理程序
-		MOV TH0,#1FH 				; 时间常数仍待优化
+		MOV TH0,#0E7H 				; 时间常数仍待优化
 		MOV TL0,#00H
+		MOV 0A6H,#01EH ;清零看门狗
+		MOV 0A6H,#0E1H
 		CPL P3.5 
 		RETI
 		
@@ -141,14 +150,24 @@ INT_C1_NORMAL1:		MOV 36H,R3
 		CJNE R0,#36H,INT_C1_NEXT0
 		MOV R0,#32H
 		LCALL CHANGE_LIGHT
-		MOV R3,30H
-		MOV R2,31H
+		MOV R2,30H
+		MOV R3,30H	   ;绿灯时间比红灯时间短3秒
+		MOV 36H,R3
+		LCALL SUBBCD
+		LCALL SUBBCD
+		LCALL SUBBCD
+		MOV R3,36H
 		SJMP INT_C1_EXIT
 INT_C1_NEXT0:
 		CJNE R0,#34H,INT_C1_NEXT1
 		LCALL CHANGE_LIGHT
-		MOV R3,31H
-		MOV R2,30H
+		MOV R2,31H
+		MOV R3,31H	   ;绿灯时间比红灯时间短3秒
+		MOV 36H,R3
+		LCALL SUBBCD
+		LCALL SUBBCD
+		LCALL SUBBCD
+		MOV R3,36H
 		SJMP INT_C1_EXIT
 INT_C1_NEXT1:
 		CJNE R0,#35H,INT_C1_NEXT2
@@ -163,12 +182,25 @@ INT_C1_NEXT2:
 		MOV A,R2
 		XCH A,R3
 INT_C1_EXIT:
+		MOV A,R0
+		CLR CY
+		SUBB A,#33H
+		JNB CY,INT_C1_REVERSEDISPLAY
 		MOV 38H,R3	   ;送显示
 		MOV 39H,#LDD2
 		LCALL DISPLAY_NUMBER
 		MOV 38H,R2
 		MOV 39H,#LDD4
 		LCALL DISPLAY_NUMBER
+		LJMP INT_C1_EXIT00
+INT_C1_REVERSEDISPLAY:	;调换显示的内容（原来显示红灯倒计时，现在则显示绿灯倒计时）
+		MOV 38H,R2	   
+		MOV 39H,#LDD2
+		LCALL DISPLAY_NUMBER
+		MOV 38H,R3
+		MOV 39H,#LDD4
+		LCALL DISPLAY_NUMBER
+INT_C1_EXIT00:
 		DJNZ R6,INT_C1_EXIT1
 		MOV R6,#SECS_PER_MIN
 		DJNZ R7,INT_C1_EXIT1
@@ -300,12 +332,24 @@ KEY2_R3:
 		RL A
 		ADD A,#50H
 		XCH A,R1
+		MOV A,3BH
+		CLR CY
+		SUBB A,#3
+		JNB CY, KEY2_R3_NEXT1
+		MOV 3BH,#00H
+KEY2_R3_NEXT1:
 		MOV @R1,3BH
 		INC R1
-		MOV @R1,3CH
+		MOV A,3CH
+		CLR CY
+		SUBB A,#3
+		JNB CY, KEY2_R3_NEXT2
+		MOV 3CH,#00H
+KEY2_R3_NEXT2:
+		MOV @R1,3CH 
 		MOV 3BH,#00H
 		MOV 3CH,#00H
-		MOV R1,3AH
+		MOV R1,3AH	 ;如果更改的为当前时间段，则立即调用GET_LIGHT_TIME重载倒计时时间
 		MOV A,37H
 		CLR CY
 		SUBB A,R1
@@ -426,7 +470,7 @@ BCDDEC_EXIT:
 		POP ACC	
 		RET
 
-CLOSEDIG:
+CLOSEDIG:				;根据选位标志，关闭某一位的现实，实现闪烁功能
 		PUSH ACC
 		MOV A,3EH
 		JB 7FH,CLOSEDIG_HIGH
@@ -453,13 +497,13 @@ HEX2BCD:			  ;将38H中的16进制数转为BCD码
 		POP ACC
 		RET
 ;---------------------------
-GET_LIGHT_TIME:							;获取当前红绿灯时间子程序，存入30h和31h
-		PUSH DPH						;默认红灯绿灯的自定义时间都需要大于0，且红灯时间大于3秒	(红灯时长比绿灯长)
+GET_LIGHT_TIME:							;获取当前红灯时间子程序，存入30h和31h
+		PUSH DPH						;默认红灯时间大于3秒
 		PUSH DPL
 		PUSH ACC
 		PUSH PSW
 		SETB RS0		         
-		MOV DPTR,#TAB_LIGHT_TIME ;读入信号灯延时信息,30H为绿灯，31H为红灯
+		MOV DPTR,#TAB_LIGHT_TIME ;读入信号灯延时信息,30H为红灯A，31H为红灯B
 		MOV A,37H
 		RL A
 		MOVC A,@A+DPTR
@@ -480,38 +524,16 @@ GET_LIGHT_TIME:							;获取当前红绿灯时间子程序，存入30h和31h
 		ORL A,@R1
 		JZ GET_LIGHT_TIME_EXIT ;若全为零，说明无用户定义数据，直接跳出
 		CJNE @R0,#00H,GET_LIGHT_TIME_NEXT1
+		MOV 30H,@R1			   ;若只有一个为0，则使两路口数字相等
 		AJMP GET_LIGHT_TIME_NEXT2
 GET_LIGHT_TIME_NEXT1:
 		MOV 30H,@R0
 GET_LIGHT_TIME_NEXT2:
 		CJNE @R1,#00H,GET_LIGHT_TIME_NEXT3
-		AJMP GET_LIGHT_TIME_FILL1
+		MOV 31H,@R0
+		AJMP GET_LIGHT_TIME_EXIT
 GET_LIGHT_TIME_NEXT3:
 		MOV 31H,@R1
-GET_LIGHT_TIME_FILL1:
-		MOV A,@R0 ;检查用户定义数据是否完整，不完整则以默认数据补充(默认为，红灯比绿灯长3秒) 
-		ANL A,@R1
-		JNZ GET_LIGHT_TIME_EXIT	;若有一个为零，则更改其为默认值
-		CJNE @R0,#00H,GET_LIGHT_TIME_FILL2
-		MOV 36H,@R1
-		LCALL SUBBCD
-		LCALL SUBBCD
-		LCALL SUBBCD
-		MOV A,36H
-		ANL A,#0F0H
-		CJNE A,#0F0H,GET_LIGHT_TIME_FILL11
-		MOV @R0,#00H
-		MOV @R1,#00H
-		LCALL GET_LIGHT_TIME
-		LJMP GET_LIGHT_TIME_EXIT					  ;避免减3之后，绿灯时长小于1秒，直接视为无效的自定义数据
-GET_LIGHT_TIME_FILL11:		MOV 30H,36H
-GET_LIGHT_TIME_FILL2:
-		CJNE @R1,#00H,GET_LIGHT_TIME_EXIT
-		MOV A,@R0
-		CLR CY
-		ADD A,#3
-		DA A
-		MOV 31H,A
 GET_LIGHT_TIME_EXIT:
 		CLR RS0
 		POP PSW
@@ -610,29 +632,29 @@ DIGIT:							;LED数码管段码表
 		DB 6DH,7DH,07H,7FH,6FH
 		DB 77H,7CH,39H,5EH,79H,00H
 TAB_LIGHT_TIME:  				;预设的信号灯时间常数，共24行，48个值
-		DB 01H, 04H
-		DB 02H, 05H
-		DB 03H, 06H
-		DB 04H, 07H
-		DB 05H, 08H
-		DB 06H, 09H
-		DB 07H, 10H
-		DB 08H, 11H
-		DB 09H, 12H
-		DB 10H, 13H
-		DB 11H, 14H
-		DB 12H, 15H
-		DB 13H, 16H
-		DB 14H, 17H
-		DB 15H, 18H
-		DB 16H, 19H
-		DB 17H, 20H
-		DB 18H, 21H
-		DB 19H, 22H
-		DB 20H, 23H
-		DB 21H, 24H
-		DB 22H, 25H
-		DB 23H, 26H
-		DB 24H, 27H
+		DB 03H, 04H
+		DB 04H, 05H
+		DB 05H, 06H
+		DB 06H, 07H
+		DB 07H, 08H
+		DB 08H, 09H
+		DB 09H, 10H
+		DB 10H, 11H
+		DB 11H, 12H
+		DB 12H, 13H
+		DB 13H, 14H
+		DB 14H, 15H
+		DB 15H, 16H
+		DB 16H, 17H
+		DB 17H, 18H
+		DB 18H, 19H
+		DB 19H, 20H
+		DB 20H, 21H
+		DB 21H, 22H
+		DB 22H, 23H
+		DB 23H, 24H
+		DB 24H, 25H
+		DB 25H, 26H
+		DB 26H, 27H
 ;----------- END --------------------
 END
