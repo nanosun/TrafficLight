@@ -1,8 +1,8 @@
 ;;------------------------
-;;TrafLight v1.5
+;;TrafLight v2.0
 ;;by SN icetiny@gmail.com
-;;2011-6-10
-;;完成键盘基本功能
+;;2011-6-16
+;;基本完成
 ;;------------------------
 ;;R0	 R1			  R2			  R3 			R6		  R7	  R5			 R4
 ;;灯状态 临时使用 2红灯倒计时	  1绿灯倒计时    秒状态数码	 分状态	  空	 屏状态（0开1选段2调路口A时间3调路口B时间）
@@ -55,7 +55,7 @@ MAIN:
 		MOV 35H,#R_Y4
 		MOV TMOD,#61H	;初始化计时器 定时器0方式1 计数器1方式2
 		MOV TH0,#0E7H	
-		MOV TL0,#00H	;2^16-6400 = 59136 = E700, 12*2*72*6400=11.0592MHz，取得较小是为了照顾WDT看门狗
+		MOV TL0,#09H	;2^16-6400 = 59136 = E700, e700+7=E707,12*2*72*6400=11.0592MHz，取得较小是为了照顾WDT看门狗
 		MOV TH1,#0DCH
 		MOV TL1,#0DCH	;36. 0.5S ;	
 		MOV R6,#SECS_PER_MIN ;每分中的秒数，调试用
@@ -81,14 +81,10 @@ MAIN:
 		LCALL DISPLAY_NUMBER
 		;中断优先级处理
 		MOV IP,#00001010B	 ;优先级依次为 t0 t1 x0 x1
-		SETB ET0
-		SETB ET1
-		SETB EX0
-		SETB EX1
-		SETB EA
-		SETB IT0
-		SETB IT1
-		SETB TR0
+		MOV IE,#10001111B	 ; EA | - | ET2 | ES | ET1 | EX1 | ET0 | EX0
+							 ; 1	0	 0	   0	1	  1		1	  1
+		MOV TCON,#05H		 ;IT0=1 IT1=1
+		SETB TR0			 ;开定时器
 		SETB TR1
 		MOV 0A6H,#01EH ;激活看门狗
 		MOV 0A6H,#0E1H 
@@ -96,11 +92,12 @@ MAIN:
 		SJMP $
 ;;-------------- END OF MAIN -----------------
 INT_TO:								;计时器0中断处理程序
-		MOV TH0,#0E7H 				; 时间常数仍待优化
-		MOV TL0,#00H
-		MOV 0A6H,#01EH ;清零看门狗
-		MOV 0A6H,#0E1H
-		CPL P3.5 
+		nop
+		MOV TH0,#0E7H 				
+		MOV TL0,#09H
+		MOV 0A6H,#01EH 				;清零看门狗
+		MOV 0A6H,#0E1H 
+		CPL P3.5
 		RETI
 		
 INT_C1:								;计数器1中断处理程序
